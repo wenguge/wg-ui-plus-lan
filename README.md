@@ -1,168 +1,34 @@
-# WireGuard UI Plus
+# wg-ui-plus-lan
 
-[中文增强版与 Docker 部署说明](docs/compose.zh-CN.md)
+面向家庭内网远程访问的 WireGuard 管理面板。给自己的设备开放家庭内网，给家人或朋友只开放指定服务。扫码前即可看到手机将走哪些 VPN 路由，以及用哪个 DNS。
 
-WireGuard UI Plus is a Dockerized web UI for running and managing a WireGuard
-VPN. The Angular single-page application and Django REST API run together in one
-container, which also generates WireGuard configuration and related iptables
-rules.
+本项目是基于 Vijay Gill 的 [wg-ui-plus v2.0.11](https://github.com/vijaygill/wg-ui-plus/tree/v2.0.11) 进行的非官方二次开发。项目沿用上游的节点、分组和访问目标模型，在此基础上完善了中文管理界面、内网分流和日常运维操作。
 
-> **Disclaimer:** Use this software at your own risk. It was developed for
-> personal use at home and is shared in the hope that it is useful to others.
+## 这个版本增加了什么
 
-## Overview
+- **中文节点面板**。在一页查看隧道地址、最近握手、实时上下行和累计流量。顶部总量和单个节点可分别重置。
+- **可配置的客户端 DNS 和路由**。内网节点默认沿用设备的 DNS。可以按节点选择使用 VPN DNS，以及是否加入到 VPN 服务端隧道地址的路由。
+- **扫码前预览**。二维码旁显示实际下发的连接端点、节点地址、路由和 DNS。
+- **撤销待应用更改**。把待应用的 WireGuard 配置恢复到上次成功应用的状态，撤销操作无需重启隧道。
 
-![VPN Layout showing peer, peer-group, and target relationships](./images/wg-ui-plus-vpn-layout.png)
+## 快速开始
 
-## Why this project?
+在已安装 Git、Docker Engine 和 Docker Compose 插件的 Linux 主机上拉取项目。
 
-WireGuard UI Plus is designed for home and small-network VPNs where different
-clients need different access. Instead of maintaining fine-grained iptables
-rules by hand, define resources as targets, put clients into peer groups, and
-associate targets with those groups.
-
-## Key features
-
-- Manage WireGuard clients (**peers**), peer groups, and resource **targets**.
-- Grant or revoke access through peer-group/target relationships.
-- Generate peer configurations, QR codes, `.conf` downloads, and optional e-mail.
-- Configure full-tunnel or narrower relationship-based `AllowedIPs` behavior.
-- Apply generated WireGuard configuration and monitor peer status and iptables.
-- Visualize relationships in **VPN Layout**.
-- Responsive dark/light Angular UI and support for Raspberry Pi and other
-  single-board computers.
-- Optional Streamable HTTP MCP server support, disabled by default.
-
-## Quick start
-
-You need Docker and a host that can grant the container `NET_ADMIN` and
-`SYS_MODULE`, set the required IPv4 sysctls, and access host kernel modules.
-
-1. Create the persistent directories:
-
-   ```bash
-   mkdir -p ./config ./data
-   ```
-
-   Ensure that these directories are writable by the container runtime user.
-
-2. Start the image (this example publishes host UDP `1196` to the default
-   container WireGuard UDP port `51820` and the UI on TCP `8000`):
-
-   ```bash
-   docker run -it --rm \
-     --cap-add NET_ADMIN --cap-add SYS_MODULE \
-     --sysctl net.ipv4.conf.all.src_valid_mark=1 \
-     --sysctl net.ipv4.ip_forward=1 \
-     -v "${PWD}/data":/data -v "${PWD}/config":/config \
-     -v /lib/modules:/lib/modules:ro \
-     --tmpfs /tmp:rw,nosuid,nodev,noexec \
-     -p "1196:51820/udp" -p "8000:8000" \
-     ghcr.io/vijaygill/wg-ui-plus:latest
-   ```
-
-3. Forward the selected UDP port from the router to the WireGuard host and open
-   `http://<internal-host-ip>:8000`.
-4. Log in with `admin` / `admin` and immediately change the password in
-   **Server Configuration** → **Change Password**.
-5. Set **Host Name External** and **Upstream DNS Server**, review **Local
-   Networks**, then select **Apply Changes**.
-6. Open a peer, scan its QR code with the WireGuard client, and configure access
-   using [ACCESS_CONTROL.md](./docs/ACCESS_CONTROL.md).
-
-The container-local `/tmp` tmpfs provides temporary working space without
-exposing the host's `/tmp` to the container. It is intentionally non-persistent
-and uses `nosuid`, `nodev`, and `noexec`; do not replace it with a host `/tmp`
-bind mount unless a specific local development integration requires that broader
-host access.
-
-For persistent Compose deployment, start with
-[docker-compose-example.yml](./docker-compose-example.yml) and read
-[DEPLOYMENT.md](./docs/DEPLOYMENT.md) first. The example maps host UDP `1195` to
-the default container UDP `51820` but does not set `WG_PORT_EXTERNAL` (default
-`1196`). Add `WG_PORT_EXTERNAL=1195` or change the mapping so peer
-configurations, router forwarding, and the application agree. The example also
-enables `CORS_ALLOW_ALL_ORIGINS=true` for convenience; restrict it before
-deployment.
-
-## Sending tunnel information using email
-
-The application can send a peer's current WireGuard configuration by SMTP. SMTP
-configuration is supplied through environment variables when the container
-starts, or through the **Server Configuration → Email** tab in the web UI
-(stored in the database; environment variables take precedence). Full setup
-instructions, provider examples, and troubleshooting are in
-[EMAIL-SETUP.md](./docs/EMAIL-SETUP.md).
-
-## How Traffic Flows Through WireGuard UI Plus
-
-The following diagram uses **sample/example values only** to show how a peer
-reaches a target through WireGuard UI Plus. The peer and target names, host
-names, IP addresses, and ports are illustrative and must be replaced with the
-values from your network.
-
-```text
-  External / public side (sample values)
-
-  Alice's Laptop (sample peer)
-  VPN address: 10.8.0.2 (sample)
-          │
-          │  Encrypted WireGuard tunnel to the sample router endpoint
-          │  Endpoint: 203.0.113.10:1196/UDP (sample)
-          ▼
-  ┌──────────────────────────────────────────────────────────────┐
-  │ Your ISP's Router/Modem                                      │
-  │ WAN/external IP: 203.0.113.10 (documentation-only sample)    │
-  │ External WireGuard port: UDP 1196 (sample)                   │
-  │                                                              │
-  │ Port forwarding: 203.0.113.10:1196/UDP                       │
-  │                  ───────────────► 192.168.1.10:51820/UDP     │
-  └──────────────────────────────────────────────────────────────┘
-          │
-          │  Internal LAN (sample)
-          ▼
-  ┌──────────────────────────────────────────────────────────────┐
-  │ WireGuard UI Plus machine (sample host)                      │
-  │ Internal IP: 192.168.1.10 (sample)                           │
-  │ Internal WireGuard port: UDP 51820 (default; sample)         │
-  │ Web UI: TCP 8000 (sample)                                    │
-  │ VPN address: 10.8.0.1 (sample)                               │
-  └──────────────────────────────────────────────────────────────┘
-          │
-          │  Allowed traffic for Alice's sample peer
-          ▼
-  ┌──────────────────────────────────────────────────────────────┐
-  │ Sample target: NAS                                           │
-  │ Internal address: 192.168.1.50 (sample)                      │
-  │ Allowed target ports: TCP 139 and TCP 445 (sample)           │
-  └──────────────────────────────────────────────────────────────┘
+```bash
+git clone https://github.com/wenguge/wg-ui-plus-lan.git
+cd wg-ui-plus-lan
+cp .env.example .env
 ```
 
-`203.0.113.10` is reserved for documentation examples and is not a real
-address to configure. Your router's actual public IP or DNS name, external
-WireGuard port, internal host IP, VPN addresses, and target address depend on
-your network. The **external port** (`UDP 1196` in this example) is the
-router-facing port used by peer endpoints and forwarded by the router. The
-**internal WireGuard port** (`UDP 51820` by default) is the port where the
-WireGuard UI Plus host receives the forwarded traffic. The NAS's **target
-ports** (`TCP 139` and `TCP 445` in this example) are separate application
-ports allowed after the VPN connection is established; they are not
-WireGuard listener ports.
+在 `.env` 填写自己的公网端点、内网网段和 Django 密钥，然后启动。
 
-## Documentation
+```bash
+docker compose up -d --build
+```
 
-- [FAQ](./docs/FAQ.md) — answers about installation, configuration, access, routing,
-  troubleshooting, authentication, MCP, e-mail, updates, backups, and security.
-- [Access control](./docs/ACCESS_CONTROL.md) — peers, peer groups, targets,
-  relationships, examples, `AllowedIPs`, and applying changes.
-- [Deployment](./docs/DEPLOYMENT.md) — Docker/Compose, ports, volumes, privileges,
-  environment settings, backups, upgrades, and secure exposure.
-- [Development](./docs/DEVELOPMENT.md) — development shell, Angular/backend builds,
-  tests, and contributor commands.
-- [MCP server](./docs/MCP.md) — MCP administration, authentication, tools, and
-  transport details.
-- [Email setup](./docs/EMAIL-SETUP.md) — SMTP configuration, provider examples,
-  and troubleshooting.
+管理面板默认绑定服务器回环地址。首次登录、SSH 转发和内网权限分组的步骤见 [中文部署说明](docs/compose.zh-CN.md)。如果把面板部署在云 VPS 上，还需要为 VPS 配好到家庭内网的可达路由。
 
-Issues and pull requests are welcome. See [DEVELOPMENT.md](./docs/DEVELOPMENT.md)
-before working on the project.
+## 上游与许可证
+
+感谢 Vijay Gill 和 [wg-ui-plus](https://github.com/vijaygill/wg-ui-plus) 的贡献者。本仓库保留上游 Git 历史、原作者版权声明和 [MIT 许可证](LICENSE)。
