@@ -7,6 +7,7 @@ import { Subscription } from 'rxjs';
 import { UserCredentials, UserSessionInfo } from '../../webapi.entities';
 import { LoginService } from '../../services/login.service';
 import { JsonPipe } from '@angular/common';
+import { authenticationMessage, authenticationText } from './authentication-text.zh-cn';
 
 @Component({
     standalone: true,
@@ -17,6 +18,7 @@ import { JsonPipe } from '@angular/common';
     styleUrl: './login.component.scss'
 })
 export class LoginComponent implements OnInit {
+  readonly authenticationMessage = authenticationMessage;
   credentials: UserCredentials = { username: '', password: '' } as UserCredentials;
   userSessionInfo: UserSessionInfo = { is_logged_in: false, message: '' } as UserSessionInfo;
   loginServiceSubscription !: Subscription;
@@ -44,7 +46,7 @@ export class LoginComponent implements OnInit {
 
   onSubmit()
   {
-    this.userSessionInfo.message = 'Logging in. Please wait...';
+    this.userSessionInfo.message = authenticationText.signingIn;
     this.loginService.login(this.credentials);
   }
 }

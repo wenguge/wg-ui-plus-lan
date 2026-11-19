@@ -1,42 +1,42 @@
 <div class="editor-form form-grid">
   <mat-form-field class="form-span">
-    <mat-label>Name</mat-label>
+    <mat-label>名称</mat-label>
     <input matInput id="targetName" [(ngModel)]="editItem.name" [disabled]="!editItem.allow_modify_self"
-      matTooltip="Network or a host allowed to be accessed via VPN." matTooltipPosition="above" matTooltipShowDelay="500"
+      matTooltip="VPN 允许访问的主机或网段。" matTooltipPosition="above" matTooltipShowDelay="500"
       autofocus />
   </mat-form-field>
   <mat-form-field class="form-span">
-    <mat-label>Description</mat-label>
+    <mat-label>描述</mat-label>
     <input matInput id="targetDescription" [(ngModel)]="editItem.description"
-      [disabled]="!editItem.allow_modify_self" matTooltip="Suitable description." matTooltipPosition="above" matTooltipShowDelay="500" />
+      [disabled]="!editItem.allow_modify_self" matTooltip="用于说明访问目标的描述。" matTooltipPosition="above" matTooltipShowDelay="500" />
   </mat-form-field>
   <app-validation-errors-display class="form-span" field="name" [validationResult]="validationResult">
   </app-validation-errors-display>
   <app-validation-errors-display class="form-span" field="description" [validationResult]="validationResult">
   </app-validation-errors-display>
   <mat-form-field class="form-span">
-    <mat-label>IP Address/Network</mat-label>
+    <mat-label>IP 地址或网段</mat-label>
     <input matInput id="targetIPAddress" [(ngModel)]="editItem.ip_address"
       [disabled]="!editItem.allow_modify_self"
-      matTooltip="Resource you wish to allow access to via the VPN. It can be IP Address / Network address with mask / IP Address with 1 or more ports (separated by commas)." matTooltipShowDelay="500"
+      [matTooltip]="addressInput.tooltip" matTooltipShowDelay="500"
       matTooltipPosition="above" />
-    <mat-hint>Valid values XXX.XXX.XXX.XXX / XXX.XXX.XXX.XXX/MASK / XXX.XXX.XXX.XXX:PORT1,PORT2...</mat-hint>
+    <mat-hint>{{ addressInput.example }}</mat-hint>
   </mat-form-field>
   <app-validation-errors-display class="form-span" field="ip_address" [validationResult]="validationResult">
   </app-validation-errors-display>
   <div class="form-span editor-row">
     <mat-checkbox id="targetDisabled" [(ngModel)]="editItem.disabled"
-      [disabled]="!editItem.allow_modify_self">Disabled</mat-checkbox>
+      [disabled]="!editItem.allow_modify_self">禁用</mat-checkbox>
   </div>
   @if (!editItem.allow_modify_self) {
-    <span class="form-span editor-note">In-built Targets are read-only.</span>
+    <span class="form-span editor-note">内置访问目标的基本信息仅供查看。</span>
   }
   <div class="form-span editor-picklist">
-    <label class="editor-label" for="target">Peer-Groups</label>
+    <label class="editor-label" for="target">节点分组</label>
     <app-dual-list id="target" [source]="editItem.peer_groups_lookup" [selected]="editItem.peer_groups"
-      sourceHeader="Available" targetHeader="Selected"
+      sourceHeader="可选" targetHeader="已选"
       [disabled]="!editItem.allow_modify_peer_groups"
-      matTooltip="Selected Peer-Groups will have access to this Target." matTooltipPosition="above" matTooltipShowDelay="500">
+      matTooltip="选中的节点分组可以访问此目标。" matTooltipPosition="above" matTooltipShowDelay="500">
       <ng-template #itemTemplate let-item>
         <div class="dual-list-item-content">
           <div class="dual-list-item-name">{{ item.name }}</div>
@@ -50,16 +50,16 @@
   <div class="form-span editor-actions">
     <button mat-flat-button color="primary" type="button" (click)="ok()" [disabled]="!hasChanges">
       <mat-icon>check</mat-icon>
-      Ok
+      保存
     </button>
     <button mat-stroked-button type="button" (click)="cancel()">
       <mat-icon>close</mat-icon>
-      Cancel
+      取消
     </button>
     @if (editItem.id && editItem.allow_modify_self) {
       <button mat-flat-button color="warn" type="button" (click)="delete($event)">
         <mat-icon>block</mat-icon>
-        Delete
+        删除
       </button>
     }
   </div>

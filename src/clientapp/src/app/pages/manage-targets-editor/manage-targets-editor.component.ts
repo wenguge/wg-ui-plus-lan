@@ -7,6 +7,7 @@ import { ValidationErrorsDisplayComponent } from '../../controls/validation-erro
 import { ConfirmationDialogService } from '../../services/confirmation-dialog.service';
 import { PeerGroup, ServerValidationError, Target } from '../../webapi.entities';
 import { WebapiService } from '../../services/webapi.service';
+import { managementText } from '../management-text.zh-cn';
 
 @Component({
     standalone: true,
@@ -36,6 +37,7 @@ export class ManageTargetsEditorComponent {
   }
 
   target: Target = {} as Target;
+  readonly addressInput = managementText.targetAddress;
 
   /** Serialized snapshot of the editable fields as originally loaded. */
   private snapshot = '';
@@ -103,7 +105,7 @@ export class ManageTargetsEditorComponent {
       return;
     }
 
-    this.confirmationDialogService.confirm('Confirm', 'Are you sure that you want to delete ' + this.editItem.name + '?')
+    this.confirmationDialogService.confirm(managementText.confirmTitle, managementText.confirmDelete(this.editItem.name))
       .subscribe(dialogResult => {
         if (dialogResult) {
           this.webapiService.deleteTarget(this.target)

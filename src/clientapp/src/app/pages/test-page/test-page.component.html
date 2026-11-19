@@ -1,16 +1,16 @@
 <div class="test-page">
-    <h1>Test Component</h1>
-    <p>This is test component!</p>
+    <h1>组件测试</h1>
+    <p>测试按钮、通知和确认弹窗。</p>
 
     <mat-card>
         <mat-card-header>
-            <mat-card-title>Buttons</mat-card-title>
+            <mat-card-title>按钮</mat-card-title>
         </mat-card-header>
         <mat-card-content>
-            <button mat-flat-button color="primary">Flat (primary)</button>
-            <button mat-stroked-button>Stroked</button>
-            <button mat-button>Text</button>
-            <button mat-icon-button aria-label="Icon button">
+            <button mat-flat-button color="primary">主按钮</button>
+            <button mat-stroked-button>描边按钮</button>
+            <button mat-button>文字按钮</button>
+            <button mat-icon-button aria-label="图标按钮">
                 <mat-icon>favorite</mat-icon>
             </button>
         </mat-card-content>
@@ -18,23 +18,23 @@
 
     <mat-card>
         <mat-card-header>
-            <mat-card-title>Notifications</mat-card-title>
+            <mat-card-title>通知</mat-card-title>
         </mat-card-header>
         <mat-card-content>
-            <button mat-flat-button color="primary" (click)="showSuccess()">Success</button>
-            <button mat-flat-button color="warn" (click)="showError()">Error</button>
-            <button mat-stroked-button (click)="showWarn()">Warn</button>
-            <button mat-stroked-button (click)="showInfo()">Info</button>
+            <button mat-flat-button color="primary" (click)="showSuccess()">成功</button>
+            <button mat-flat-button color="warn" (click)="showError()">错误</button>
+            <button mat-stroked-button (click)="showWarn()">警告</button>
+            <button mat-stroked-button (click)="showInfo()">信息</button>
         </mat-card-content>
     </mat-card>
 
     <mat-card>
         <mat-card-header>
-            <mat-card-title>Confirmations</mat-card-title>
+            <mat-card-title>确认</mat-card-title>
         </mat-card-header>
         <mat-card-content>
-            <button mat-flat-button (click)="confirmDemo()">Confirm dialog</button>
-            <button mat-stroked-button (click)="showMessageDemo()">Show message</button>
+            <button mat-flat-button (click)="confirmDemo()">确认弹窗</button>
+            <button mat-stroked-button (click)="showMessageDemo()">显示消息</button>
         </mat-card-content>
     </mat-card>
 </div>

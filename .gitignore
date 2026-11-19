@@ -6,6 +6,8 @@ __pycache__/
 junit/
 *.db
 docker-env-dev.txt
+.env
+.local-preview/
 
 # Graphify generated workspace data
 /graphify-out/

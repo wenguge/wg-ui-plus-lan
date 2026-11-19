@@ -7,6 +7,7 @@ export type NotificationSource = 'status' | 'user';
 export interface NotificationAction {
     label: string;
     callback: () => void;
+    disabled?: () => boolean;
 }
 
 export interface AppNotification {
@@ -14,6 +15,7 @@ export interface AppNotification {
     message: string;
     /** Optional button shown in the banner (e.g. "Apply Changes"). */
     action?: NotificationAction;
+    secondaryAction?: NotificationAction;
     /** Persistent messages stay until cleared/replaced; transient ones auto-dismiss. */
     persistent?: boolean;
     /** If true, a dismiss (X) button is shown. */
@@ -41,11 +43,11 @@ interface ShowOptions {
 export class NotificationService {
 
     private readonly durationMs = 4000;
-    private readonly emailFailureDurationMs = 15000;
+    private readonly operationFailureDurationMs = 15000;
     private readonly current$ = new BehaviorSubject<AppNotification | null>(null);
     private current: AppNotification | null = null;
     private statusNotification: AppNotification | null = null;
-    private emailFailureVisible = false;
+    private operationFeedbackVisible = false;
     private autoDismissTimer: ReturnType<typeof setTimeout> | null = null;
 
     public readonly notification$: Observable<AppNotification | null> = this.current$.asObservable();
@@ -71,13 +73,17 @@ export class NotificationService {
      * The displaced status is retained and restored when this message ends.
      */
     public showEmailDeliveryFailure(message: string): void {
+        this.showOperationFeedback('error', message);
+    }
+
+    public showOperationFeedback(type: 'error' | 'success', message: string): void {
         if (this.current?.persistent && this.current.source === 'status') {
             this.statusNotification = this.current;
         }
-        this.emailFailureVisible = true;
+        this.operationFeedbackVisible = true;
         this.show(
-            { type: 'error', message, dismissible: true, source: 'user' },
-            { replacePersistent: true, durationMs: this.emailFailureDurationMs },
+            { type, message, dismissible: true, source: 'user' },
+            { replacePersistent: true, durationMs: type === 'error' ? this.operationFailureDurationMs : this.durationMs },
         );
     }
 
@@ -85,7 +91,7 @@ export class NotificationService {
     public showStatus(notification: AppNotification): void {
         const statusNotification = { ...notification, source: 'status' as const };
         this.statusNotification = statusNotification;
-        if (this.emailFailureVisible) {
+        if (this.operationFeedbackVisible) {
             return;
         }
         this.show(statusNotification);
@@ -106,8 +112,8 @@ export class NotificationService {
         }
     }
 
-    public isEmailDeliveryFailureVisible(): boolean {
-        return this.emailFailureVisible;
+    public isOperationFeedbackVisible(): boolean {
+        return this.operationFeedbackVisible;
     }
 
     /** Clears a status banner without removing user feedback shown in its place. */
@@ -120,8 +126,8 @@ export class NotificationService {
 
     public clear(): void {
         this.clearTimer();
-        if (this.emailFailureVisible && this.current?.source === 'user') {
-            this.emailFailureVisible = false;
+        if (this.operationFeedbackVisible && this.current?.source === 'user') {
+            this.operationFeedbackVisible = false;
             if (this.statusNotification) {
                 this.show(this.statusNotification);
                 return;

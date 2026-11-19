@@ -1,20 +1,20 @@
 <div class="list-toolbar">
-  <span class="list-hint">Add/Edit/Delete Peers here...</span>
+  <span class="list-hint">添加、编辑或删除节点</span>
   <button mat-flat-button color="primary" type="button" (click)="newItem();">
     <mat-icon>add</mat-icon>
-    New
+    新建
   </button>
 </div>
 <div class="table-scroll">
 <table class="data-table" matSort matSortDisableClear matSortActive="name" matSortDirection="asc" (matSortChange)="sortData($event)">
   <thead>
     <tr>
-      <th mat-sort-header="name">Name</th>
-      <th>Description</th>
-      <th>IP Address</th>
-      <th>Disabled</th>
-      <th>Can Access</th>
-      <th>Action</th>
+      <th mat-sort-header="name" sortActionDescription="按名称排序">名称</th>
+      <th>描述</th>
+      <th>IP 地址</th>
+      <th>状态</th>
+      <th>可访问目标</th>
+      <th>操作</th>
     </tr>
   </thead>
   <tbody>
@@ -25,22 +25,22 @@
         <td>{{ peer.ip_address }}</td>
         <td>
           @if (peer.disabled) {
-            <span class="status-chip status-chip-off">Disabled</span>
+            <span class="status-chip status-chip-off">已禁用</span>
           } @else {
-            <span class="status-chip status-chip-ok">Enabled</span>
+            <span class="status-chip status-chip-ok">已启用</span>
           }
         </td>
         <td>{{ peer.target_names }}</td>
         <td>
           <button mat-stroked-button type="button" (click)="editItem(peer);">
             <mat-icon>edit</mat-icon>
-            Edit
+            编辑
           </button>
         </td>
       </tr>
     } @empty {
       <tr>
-        <td colspan="6" class="empty-row">No peers found.</td>
+        <td colspan="6" class="empty-row">暂无节点。</td>
       </tr>
     }
   </tbody>

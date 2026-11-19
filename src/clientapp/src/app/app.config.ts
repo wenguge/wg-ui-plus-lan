@@ -1,4 +1,6 @@
-import { ApplicationConfig } from '@angular/core';
+import { registerLocaleData } from '@angular/common';
+import localeZhHans from '@angular/common/locales/zh-Hans';
+import { ApplicationConfig, LOCALE_ID } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { provideClientHydration, withNoIncrementalHydration } from '@angular/platform-browser';
@@ -7,9 +9,11 @@ import { HttpClientErrorInterceptor } from './http-client-error.interceptor';
 
 import { routes } from './app.routes';
 
+registerLocaleData(localeZhHans);
 
 export const appConfig: ApplicationConfig = {
   providers: [
+    { provide: LOCALE_ID, useValue: 'zh-Hans' },
     provideHttpClient(withXhr(), withXsrfConfiguration(
       {
         cookieName: 'csrftoken',

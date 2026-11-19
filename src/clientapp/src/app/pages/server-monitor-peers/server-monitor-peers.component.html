@@ -1,31 +1,36 @@
-<app-page-header title="Monitor Peers"
-  subtitle="Live status of all peers and their transfer statistics.">
+<app-page-header title="节点监控" subtitle="查看各节点的连接状态和实时流量，每秒刷新。">
+  @if (canResetTransfers) {
+    <button class="toolbar-button" type="button" [disabled]="resettingTransfers.has(null)" (click)="resetTransferTotals()">
+      <mat-icon class="toolbar-icon reset-icon" aria-hidden="true">restart_alt</mat-icon>
+      {{ trafficResetText.totalButton }}
+    </button>
+  }
 </app-page-header>
 
 <div class="metrics-row">
   <div class="metric-tile">
     <span class="metric-value">{{ connectedCount | number }}</span>
-    <span class="metric-label">Connected</span>
+    <span class="metric-label">已连接</span>
   </div>
   <div class="metric-tile">
     <span class="metric-value">{{ inactiveCount | number }}</span>
-    <span class="metric-label">Inactive</span>
+    <span class="metric-label">不活跃</span>
   </div>
   <div class="metric-tile">
     <span class="metric-value">{{ disabledCount | number }}</span>
-    <span class="metric-label">Disabled</span>
+    <span class="metric-label">已禁用</span>
   </div>
   <div class="metric-tile">
     <span class="metric-value">{{ offlineCount | number }}</span>
-    <span class="metric-label">Disconnected</span>
+    <span class="metric-label">未连接</span>
   </div>
   <div class="metric-tile">
-    <span class="metric-value">{{ totalTx | number }}</span>
-    <span class="metric-label">Total Tx (bytes)</span>
+    <span class="metric-value">{{ formatTransfer(totalDownload) }}</span>
+    <span class="metric-label">累计下载</span>
   </div>
   <div class="metric-tile">
-    <span class="metric-value">{{ totalRx | number }}</span>
-    <span class="metric-label">Total Rx (bytes)</span>
+    <span class="metric-value">{{ formatTransfer(totalUpload) }}</span>
+    <span class="metric-label">累计上传</span>
   </div>
 </div>
 
@@ -33,55 +38,127 @@
   <p class="table-caption">{{connectedPeerData.message}}</p>
 }
 
-<mat-card>
-  <mat-card-content>
-    <div class="table-scroll">
-    <table class="data-table" matSort matSortDisableClear matSortActive="peer_name" matSortDirection="asc"
-      (matSortChange)="sortData($event)">
-      <thead>
-        <tr>
-          <th mat-sort-header="peer_name">Name</th>
-          <th>Status</th>
-          <th>IP Address (Public)</th>
-          <th>IP Address (Internal)</th>
-          <th>Last Handshake</th>
-          <th>Data Tx</th>
-          <th>Data Rx</th>
-        </tr>
-      </thead>
-      <tbody>
-        @for (connectedPeer of connectedPeerData.items; track connectedPeer.peer_name) {
-          <tr>
-            <td>{{ connectedPeer.peer_name }}</td>
-            <td>
-              @switch (peerState(connectedPeer)) {
-                @case ('connected') {
-                  <span class="status-chip status-chip-ok">Connected</span>
-                }
-                @case ('inactive') {
-                  <span class="status-chip status-chip-warn">Inactive</span>
-                }
-                @case ('disabled') {
-                  <span class="status-chip status-chip-info">Disabled</span>
-                }
-                @default {
-                  <span class="status-chip status-chip-off">Disconnected</span>
-                }
-              }
-            </td>
-            <td>{{ connectedPeer.end_point_ip }}</td>
-            <td>{{ connectedPeer.allowed_ips_ip }}</td>
-            <td>{{ connectedPeer.latest_handshake }}</td>
-            <td>{{ connectedPeer.transfer_rx | number }}</td>
-            <td>{{ connectedPeer.transfer_tx | number }}</td>
-          </tr>
-        } @empty {
-          <tr>
-            <td colspan="7" class="empty-row">No connected peers.</td>
-          </tr>
-        }
-      </tbody>
-    </table>
-    </div>
-  </mat-card-content>
+<mat-card class="client-panel" appearance="outlined">
+  <div class="client-toolbar">
+    <h2>客户端管理</h2>
+    <label class="client-search">
+      <svg class="toolbar-icon" aria-hidden="true"><use href="assets/peer-icons.svg#magnifying-glass" /></svg>
+      <input type="search" aria-label="搜索客户端" placeholder="搜索客户端…" [(ngModel)]="search" />
+    </label>
+    <button class="toolbar-button sort-button" type="button" [matMenuTriggerFor]="clientSort" aria-label="排序">
+      <svg class="toolbar-icon" aria-hidden="true">
+        <use [attr.href]="sortDirection === 'asc' ? 'assets/peer-icons.svg#arrow-down' : 'assets/peer-icons.svg#arrow-up'" />
+      </svg>
+      排序
+    </button>
+    <mat-menu #clientSort="matMenu">
+      <button mat-menu-item type="button" (click)="sortDirection = 'asc'">按名称升序</button>
+      <button mat-menu-item type="button" (click)="sortDirection = 'desc'">按名称降序</button>
+    </mat-menu>
+    <button class="toolbar-button" type="button" (click)="openEditor()">
+      <svg class="toolbar-icon" aria-hidden="true"><use href="assets/peer-icons.svg#plus" /></svg>
+      新建
+    </button>
+  </div>
+
+  <ul class="client-list" aria-label="客户端列表">
+    @for (client of visibleClients; track client.peer?.id ?? client.ip) {
+      <li class="client-row">
+        <div class="client-identity">
+          <div class="client-name-line">
+            <strong class="client-name">{{ client.name }}</strong>
+            @switch (client.state) {
+              @case ('connected') { <span class="status-chip status-chip-ok">已连接</span> }
+              @case ('inactive') { <span class="status-chip status-chip-warn">不活跃</span> }
+              @case ('disabled') { <span class="status-chip status-chip-info">已禁用</span> }
+              @default { <span class="status-chip status-chip-off">未连接</span> }
+            }
+          </div>
+          <div class="client-address">
+            <span class="client-detail">隧道 IP</span>
+            <span>{{ client.ip || '—' }}</span>
+          </div>
+          <div class="client-address">
+            <span class="client-detail">公网 IP</span>
+            <span>{{ client.stats?.end_point_ip ?? '—' }}</span>
+          </div>
+          <div class="client-handshake" [attr.title]="client.stats?.latest_handshake">
+            <span class="client-detail">最近握手</span>
+            <span>{{ formatHandshake(client.stats?.latest_handshake ?? null) }}</span>
+          </div>
+        </div>
+
+        <div class="client-transfer" aria-label="下载流量">
+          <svg class="transfer-icon" aria-hidden="true"><use href="assets/peer-icons.svg#arrow-down" /></svg>
+          <div>
+            <span class="transfer-rate">{{ formatTransfer(client.stats?.downloadRate ?? null, '/s') }}</span>
+            <span class="client-detail transfer-total">{{ formatTransfer(client.stats?.cumulative_tx ?? client.stats?.transfer_tx ?? null) }}</span>
+          </div>
+        </div>
+        <div class="client-transfer" aria-label="上传流量">
+          <svg class="transfer-icon" aria-hidden="true"><use href="assets/peer-icons.svg#arrow-up" /></svg>
+          <div>
+            <span class="transfer-rate">{{ formatTransfer(client.stats?.uploadRate ?? null, '/s') }}</span>
+            <span class="client-detail transfer-total">{{ formatTransfer(client.stats?.cumulative_rx ?? client.stats?.transfer_rx ?? null) }}</span>
+          </div>
+        </div>
+
+        <div class="client-actions">
+          @if (client.peer; as peer) {
+            <button class="client-switch" type="button" role="switch" [attr.aria-checked]="!peer.disabled"
+              [attr.aria-label]="'启用 ' + client.name" [disabled]="changingPeers.has(peer.id)"
+              [matTooltip]="peer.disabled ? '启用客户端' : '禁用客户端'" (click)="togglePeer(peer)">
+              <span aria-hidden="true"></span>
+            </button>
+            <button class="client-action" type="button" matTooltip="编辑" [attr.aria-label]="'编辑 ' + client.name" (click)="openEditor(peer)">
+              <svg aria-hidden="true"><use href="assets/peer-icons.svg#pencil-square" /></svg>
+            </button>
+            <button class="client-action" type="button" matTooltip="二维码" [attr.aria-label]="'二维码 ' + client.name"
+              [disabled]="loadingConfiguration" (click)="openConfiguration(peer, 'qr')">
+              <svg aria-hidden="true"><use href="assets/peer-icons.svg#qr-code" /></svg>
+            </button>
+            <button class="client-action" type="button" matTooltip="下载配置" [attr.aria-label]="'下载配置 ' + client.name"
+              [disabled]="loadingConfiguration" (click)="openConfiguration(peer, 'download')">
+              <svg aria-hidden="true"><use href="assets/peer-icons.svg#arrow-down-tray" /></svg>
+            </button>
+            <button class="client-action" type="button" matTooltip="查看和复制配置" [attr.aria-label]="'查看配置 ' + client.name"
+              [disabled]="loadingConfiguration" (click)="openConfiguration(peer, 'show')">
+              <svg aria-hidden="true"><use href="assets/peer-icons.svg#link" /></svg>
+            </button>
+            @if (canResetTransfers) {
+              <button class="client-action" type="button" [matTooltip]="trafficResetText.peerButton" [attr.aria-label]="trafficResetText.peerLabel(client.name)"
+                [disabled]="resettingTransfers.has(peer.id)" (click)="resetTransferTotals(peer)">
+                <mat-icon class="reset-icon" aria-hidden="true">restart_alt</mat-icon>
+              </button>
+            }
+          }
+        </div>
+      </li>
+    } @empty {
+      <li class="client-empty">{{ search.trim() ? '没有匹配的客户端。' : '暂无客户端。' }}</li>
+    }
+  </ul>
 </mat-card>
+
+<ng-template #peerEditor let-peer>
+  <h2 mat-dialog-title>{{ peer.id ? '编辑客户端' : '新建客户端' }}</h2>
+  <mat-dialog-content><app-manage-peers-editor [editItem]="peer" (onFinish)="finishEditor($event)" /></mat-dialog-content>
+</ng-template>
+
+<ng-template #peerExport let-data>
+  <h2 mat-dialog-title>{{ data.name }} · {{ data.action === 'qr' ? '二维码' : '客户端配置' }}</h2>
+  <mat-dialog-content>
+    <app-peer-configuration-preview [configuration]="data.configuration" />
+    @if (data.action === 'qr') {
+      <img class="client-qr" [src]="'data:image/png;base64,' + data.qr" alt="客户端配置二维码" />
+    } @else {
+      <textarea class="client-configuration" rows="12" readonly [value]="data.configuration" aria-label="客户端配置"></textarea>
+    }
+  </mat-dialog-content>
+  <mat-dialog-actions align="end">
+    @if (data.action === 'show') {
+      <button mat-button type="button" (click)="copyConfiguration(data.configuration)">复制配置</button>
+    }
+    <button mat-button type="button" mat-dialog-close>关闭</button>
+  </mat-dialog-actions>
+</ng-template>

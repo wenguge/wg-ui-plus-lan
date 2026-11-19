@@ -1,6 +1,10 @@
 node_modules
 dist
 .git
+.env
+.local-preview
+.angular
+src/clientapp/.angular
 data
 config
 images

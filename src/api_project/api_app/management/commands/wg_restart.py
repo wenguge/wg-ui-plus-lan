@@ -1,7 +1,6 @@
 from django.core.management.base import BaseCommand, CommandError
-from api_app.wireguard_helper import WireGuardHelper
-from api_app.models import ServerConfiguration
-import traceback
+
+from api_app.configuration_revision import ConfigurationError, apply_configuration
 
 
 class Command(BaseCommand):
@@ -9,10 +8,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         try:
-            wg = WireGuardHelper()
-            sc = ServerConfiguration.objects.all()[0]
-            res = wg.restart(server_configuration=sc)
-            self.stdout.write(f'{res["status"]}')
-            self.stdout.write(self.style.SUCCESS('WireGuard VPN restarted.'))
-        except Exception as e:
-            raise CommandError('Error:' + traceback.format_exception(e))
+            apply_configuration(existing_files=True)
+        except (ConfigurationError, OSError) as error:
+            raise CommandError("Could not restart WireGuard.") from error
+        self.stdout.write(self.style.SUCCESS("WireGuard VPN restarted."))

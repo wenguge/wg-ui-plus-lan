@@ -4,6 +4,7 @@ from django.contrib.auth.models import auth
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
+from django.shortcuts import get_object_or_404
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework import viewsets
 from rest_framework import serializers
@@ -33,6 +34,8 @@ from .serializers import (
 from .server_helper import get_application_details
 from api_app import server_helper
 from .mcp_configuration import MCPConfigurationService, MCPTokenService
+from .configuration_revision import ConfigurationError, apply_configuration, undo_configuration
+from .traffic_totals import apply_baselines, interface_generation, reset_baseline
 from .shared_functions import (
     get_connected_peers,
     get_iptables_log,
@@ -317,7 +320,10 @@ def get_license(request):
 @authentication_classes([SessionAuthentication])
 @permission_classes([IsAuthenticated])
 def wireguard_generate_configuration_files(request):
-    res = server_helper.generate_configuration_files()
+    try:
+        res = server_helper.generate_configuration_files()
+    except (ConfigurationError, OSError):
+        return Response({"detail": "Could not generate WireGuard configuration."}, status=503)
     return Response(res)
 
 
@@ -325,9 +331,38 @@ def wireguard_generate_configuration_files(request):
 @authentication_classes([SessionAuthentication])
 @permission_classes([IsAuthenticated])
 def wireguard_restart(request):
-    sc = ServerConfiguration.objects.all()[0]
-    res = restart_wireguard(sc)
+    try:
+        res = restart_wireguard()
+    except ConfigurationError as error:
+        return Response({"detail": str(error)}, status=503)
+    except OSError:
+        return Response({"detail": "Could not restart WireGuard."}, status=503)
     return Response({"message": "Hello from wireguard_restart!", "output": res})
+
+
+@api_view(["POST"])
+@authentication_classes([SessionAuthentication])
+@permission_classes([IsAuthenticated])
+def wireguard_apply_configuration(request):
+    try:
+        apply_configuration()
+    except ConfigurationError as error:
+        return Response({"detail": str(error)}, status=503)
+    except OSError:
+        return Response({"detail": "Could not apply WireGuard configuration."}, status=503)
+    return Response(status=204)
+
+
+@api_view(["POST"])
+@authentication_classes([SessionAuthentication])
+@permission_classes([IsAuthenticated])
+def wireguard_undo_configuration(request):
+    try:
+        if not undo_configuration():
+            return Response({"detail": "No applied WireGuard configuration is available."}, status=409)
+    except OSError:
+        return Response({"detail": "Could not restore the applied configuration."}, status=503)
+    return Response(status=204)
 
 
 @api_view(["GET"])
@@ -342,8 +377,33 @@ def wireguard_get_configuration(request):
 @authentication_classes([SessionAuthentication])
 def wireguard_get_connected_peers(request):
     sc = ServerConfiguration.objects.all()[0]
+    generation = interface_generation(sc)
     res = get_connected_peers(sc)
-    return Response(res)
+    return Response(apply_baselines(res, generation))
+
+
+class TransferResetSerializer(serializers.Serializer):
+    peer_id = serializers.IntegerField(min_value=1, allow_null=True)
+
+
+@api_view(["POST"])
+@authentication_classes([SessionAuthentication])
+@permission_classes([IsAuthenticated])
+def wireguard_reset_transfer_totals(request):
+    data = TransferResetSerializer(data=request.data)
+    data.is_valid(raise_exception=True)
+    peer_id = data.validated_data["peer_id"]
+    if peer_id is not None:
+        get_object_or_404(Peer, pk=peer_id)
+    sc = ServerConfiguration.objects.all()[0]
+    generation = interface_generation(sc)
+    if generation is None:
+        return Response({"detail": "WireGuard interface unavailable."}, status=503)
+    snapshot = get_connected_peers(sc)
+    if interface_generation(sc) != generation:
+        return Response({"detail": "WireGuard interface changed."}, status=409)
+    reset_baseline(peer_id, generation, snapshot["items"])
+    return Response(status=204)
 
 
 @api_view(["GET"])

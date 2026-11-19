@@ -2,6 +2,7 @@
 import { Component, Input, ChangeDetectionStrategy } from '@angular/core';
 import { ServerValidationError } from '../../webapi.entities';
 import { MatIconModule } from '@angular/material/icon';
+import { formatValidationError } from '../../ui-text.zh-cn';
 
 export interface ValidationErrorMessage {
     severity: string;
@@ -31,7 +32,10 @@ export class ValidationErrorsDisplayComponent {
         if (!validationResultItem.detail) {
           return;
         }
-        let message = { severity: 'error', detail: validationResultItem.detail } as ValidationErrorMessage;
+        let message = {
+          severity: 'error',
+          detail: formatValidationError(validationResultItem.code, validationResultItem.detail),
+        } as ValidationErrorMessage;
         res.push(message);
       }
       );

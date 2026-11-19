@@ -1,8 +1,6 @@
-import traceback
-
-from api_app.models import Peer, PeerGroup, ServerConfiguration, Target
-from api_app.wireguard_helper import WireGuardHelper
 from django.core.management.base import BaseCommand, CommandError
+
+from api_app.configuration_revision import ConfigurationError, stage_configuration
 
 
 class Command(BaseCommand):
@@ -10,14 +8,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         try:
-            wg = WireGuardHelper()
-            sc = ServerConfiguration.objects.all()[0]
-            peer_groups = PeerGroup.objects.all()
-            peers = Peer.objects.all()
-            targets = Target.objects.all()
-            res = wg.generate_configuration_files(
-                server_configuration=sc, targets=targets, peer_groups=peer_groups, peers=peers
-            )
-            self.stdout.write(self.style.SUCCESS(f'Generated WireGuard Configuration Files. {res["status"]}'))
-        except Exception as e:
-            raise CommandError('Error:' + traceback.format_exception(e))
+            stage_configuration()
+        except (ConfigurationError, OSError) as error:
+            raise CommandError("Could not generate WireGuard configuration.") from error
+        self.stdout.write(self.style.SUCCESS("Generated WireGuard configuration files."))

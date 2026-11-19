@@ -1,5 +1,5 @@
-<app-page-header title="VPN Layout"
-  subtitle="How Targets, Peer-Groups and Peers are linked. (Refreshed every {{refreshDelay}} seconds)">
+<app-page-header title="VPN 拓扑"
+  subtitle="查看访问目标、节点分组和节点的关联。每 {{refreshDelay}} 秒刷新。">
 </app-page-header>
 
 <mat-card>
@@ -7,15 +7,13 @@
     <app-org-chart [value]="hierarchyData"></app-org-chart>
     <div class="layout-notes">
       <ul>
-        <li>A Peer is a device which connects with VPN</li>
-        <li>A Target can be a host (a specific IP Address with or without port/ports) or a network (IP Address with
-        a mask)</li>
+        <li>节点是接入 VPN 的设备。</li>
+        <li>访问目标可以是单个 IP、主机上的指定端口或整个网段。</li>
         <li>
-          A Peer-Group is a group of Peers that can be given access to a Target.
+          节点分组用于给一组设备授予访问目标的权限。
           <ul>
-            <li>Using Peer-Groups makes it easy to grant/deny access to the peers.</li>
-            <li>Once a Peer-Group is linked with a target (either in Peer-Group edit page or Target edit
-            page), just add/remove Peers in the given Peer-Group.</li>
+            <li>可以在分组或访问目标的编辑页建立关联。</li>
+            <li>建立关联后，添加或移出组内节点即可授予或撤销对应权限。</li>
           </ul>
         </li>
       </ul>

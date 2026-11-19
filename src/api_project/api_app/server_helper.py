@@ -12,6 +12,7 @@ from .mcp_configuration import MCPConfigurationService
 
 from .common import CACHE_KEY_APP_LIVE_VERSION, CACHE_TTL, APP_URL
 from .email_service import get_email_status
+from .configuration_revision import configuration_pending, stage_configuration
 
 
 def get_server_status():
@@ -33,6 +34,15 @@ def get_server_status():
     res = wg.get_server_status(
         last_db_change_datetime=last_db_change_datetime
     )
+    pending = configuration_pending()
+    res["can_undo_configuration"] = pending is True
+    if pending is not None:
+        res["need_regenerate_files"] = pending
+        res["status"] = "warning" if pending else "ok"
+        if pending:
+            res["message"] = "WireGuard configuration changes are pending."
+        else:
+            res.pop("message", None)
     return res
 
 
@@ -83,15 +93,4 @@ def get_application_details():
 
 
 def generate_configuration_files():
-    dt = datetime.datetime.now(datetime.timezone.utc)
-    wg = WireGuardHelper()
-    sc = ServerConfiguration.objects.all()[0]
-    peer_groups = PeerGroup.objects.all()
-    peers = Peer.objects.all()
-    targets = Target.objects.all()
-    res = wg.generate_configuration_files(
-        server_configuration=sc, targets=targets, peer_groups=peer_groups, peers=peers
-    )
-    sc.wireguard_config_change_datetime = dt
-    sc.save()
-    return res
+    return stage_configuration()

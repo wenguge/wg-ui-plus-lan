@@ -123,13 +123,13 @@ export class OrgChartComponent implements OnChanges {
     disabledTooltip(node: OrgChartNode): string {
         switch (node.type) {
             case 'target':
-                return 'Target disabled. Access to this Target is disabled for everyone.';
+                return '此访问目标已停用，所有节点均无法通过该目标访问。';
             case 'peerGroup':
-                return "Peer-Group disabled. All Peers in this Peer-Group won't have access to the linked Target.";
+                return '此节点分组已停用，组内节点将失去通过此组获得的访问权限。';
             case 'peer':
-                return "Peer disabled. This Peer won't have access to the Target to the linked Peer-Group.";
+                return '此节点已停用，无法访问分组关联的目标。';
             default:
-                return 'Disabled';
+                return '已停用';
         }
     }
 }

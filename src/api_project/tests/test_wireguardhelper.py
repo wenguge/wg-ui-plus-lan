@@ -31,6 +31,9 @@ def make_peer(**overrides):
         "ip_address": "192.168.3.2",
         "private_key": "PEER_PRIVATE_KEY",
         "port": None,
+        "disabled": False,
+        "client_use_vpn_dns": None,
+        "client_include_server_route": False,
         "peer_groups": types.SimpleNamespace(all=lambda: []),
     }
     defaults.update(overrides)
@@ -93,18 +96,6 @@ class WireGuardIptablesScriptTests(SimpleTestCase):
         self.assertNotIn("iptables --delete-chain", post_down)
         self.assertIn("WIREGUARD_INTERFACE=wg0", post_down)
 
-    def test_strict_allowed_ips_includes_upstream_dns(self):
-        server_configuration = make_server_configuration(
-            strict_allowed_ips_in_peer_config=True
-        )
-        peer = make_peer()
-        server_side_config, client_side_config = (
-            self.helper.get_wireguard_configurations_for_peer(
-                server_configuration, [], peer
-            )
-        )
-        self.assertIn("192.168.0.5/32", client_side_config)
-
     def test_generated_commands_use_xtables_lock_wait(self):
         post_up, post_down = self.get_scripts()
         self.assertIn("iptables -w5", post_up)
@@ -114,3 +105,60 @@ class WireGuardIptablesScriptTests(SimpleTestCase):
                     line.startswith("iptables -w5"),
                     "iptables command missing -w5: {!r}".format(line),
                 )
+
+
+class WireGuardClientExportTests(SimpleTestCase):
+    def make_group(self, *addresses, name="LAN", disabled=False, targets_disabled=False):
+        targets = [
+            types.SimpleNamespace(ip_address=address, disabled=targets_disabled)
+            for address in addresses
+        ]
+        return types.SimpleNamespace(
+            name=name, disabled=disabled,
+            targets=types.SimpleNamespace(all=lambda: targets),
+            peers=types.SimpleNamespace(all=lambda: []),
+        )
+
+    def export(self, groups=(), everyone=None, strict=True, **peer_options):
+        server = make_server_configuration(strict_allowed_ips_in_peer_config=strict)
+        peer = make_peer(peer_groups=types.SimpleNamespace(all=lambda: groups), **peer_options)
+        return WireGuardHelper().get_wireguard_configurations_for_peer(
+            server, [everyone] if everyone else [], peer
+        )
+
+    def test_split_export_defaults_to_device_dns_and_home_routes(self):
+        server, client = self.export([self.make_group("192.168.50.0/24")])
+        self.assertIn("AllowedIPs = 192.168.3.2/32", server)
+        self.assertIn("Endpoint = vpn.example.com:51820", client)
+        self.assertIn("AllowedIPs = 192.168.50.0/24\n", client)
+        self.assertNotIn("DNS =", client)
+
+    def test_split_export_options_are_independent(self):
+        group = self.make_group("192.168.50.0/24")
+        _, dns = self.export([group], client_use_vpn_dns=True)
+        _, server = self.export([group], client_include_server_route=True)
+        self.assertIn("DNS = 192.168.0.5\n", dns)
+        self.assertIn("AllowedIPs = 192.168.0.5/32,192.168.50.0/24\n", dns)
+        self.assertNotIn("DNS =", server)
+        self.assertIn("AllowedIPs = 192.168.3.1/32,192.168.50.0/24\n", server)
+
+    def test_full_export_keeps_vpn_dns_by_default(self):
+        for groups, strict in (([self.make_group("0.0.0.0/0")], True), ([], False)):
+            with self.subTest(strict=strict):
+                _, client = self.export(groups, strict=strict, client_include_server_route=True)
+                self.assertIn("DNS = 192.168.0.5\n", client)
+                self.assertIn("AllowedIPs = 0.0.0.0/0\n", client)
+                _, no_dns = self.export(groups, strict=strict, client_use_vpn_dns=False)
+                self.assertNotIn("DNS =", no_dns)
+
+    def test_no_active_routes_does_not_export_all_traffic(self):
+        for groups in ((), [self.make_group("0.0.0.0/0", disabled=True)],
+                       [self.make_group("0.0.0.0/0", targets_disabled=True)]):
+            with self.subTest(groups=groups):
+                _, client = self.export(groups)
+                self.assertNotIn("AllowedIPs =", client)
+                self.assertNotIn("DNS =", client)
+
+    def test_everyone_target_port_becomes_host_route(self):
+        _, client = self.export(everyone=self.make_group("192.168.50.4:8096", name="EveryOne"))
+        self.assertIn("AllowedIPs = 192.168.50.4/32\n", client)

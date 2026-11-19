@@ -31,6 +31,16 @@ urlpatterns = [
         name="wireguard_restart",
     ),
     path(
+        "api/v1/control/wireguard_apply_configuration",
+        views.wireguard_apply_configuration,
+        name="wireguard_apply_configuration",
+    ),
+    path(
+        "api/v1/control/wireguard_undo_configuration",
+        views.wireguard_undo_configuration,
+        name="wireguard_undo_configuration",
+    ),
+    path(
         "api/v1/control/wireguard_get_configuration",
         views.wireguard_get_configuration,
         name="wireguard_get_configuration",
@@ -39,6 +49,11 @@ urlpatterns = [
         "api/v1/control/wireguard_get_connected_peers",
         views.wireguard_get_connected_peers,
         name="wireguard_get_connected_peers",
+    ),
+    path(
+        "api/v1/control/wireguard_reset_transfer_totals",
+        views.wireguard_reset_transfer_totals,
+        name="wireguard_reset_transfer_totals",
     ),
     path(
         "api/v1/control/get_iptables_log",

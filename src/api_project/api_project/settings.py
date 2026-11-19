@@ -21,7 +21,7 @@ rebuild_fastmcp_settings()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = "django-insecure-$g$nz5fz@x7%jky18-#i7)2i3zb)*dw6-65t#(*)+^#514p7%j"
+SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY") or "django-insecure-$g$nz5fz@x7%jky18-#i7)2i3zb)*dw6-65t#(*)+^#514p7%j"
 
 INSTALLED_APPS = [
     "whitenoise.runserver_nostatic",

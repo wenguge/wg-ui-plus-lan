@@ -1,36 +1,36 @@
 <app-authorized-view>
   <ng-template #childControl>
-    <app-page-header title="Server Configuration"
-      subtitle="Configure the VPN on the server side and manage your password."></app-page-header>
+    <app-page-header title="服务器配置"
+      subtitle="配置 VPN 服务器和管理登录密码"></app-page-header>
 
     <mat-tab-group>
       <mat-tab>
         <ng-template mat-tab-label>
           <mat-icon>tune</mat-icon>
-          <span class="tab-label">Server Configuration</span>
+          <span class="tab-label">服务器配置</span>
         </ng-template>
         <mat-card>
           <mat-card-content>
             <div class="editor-form form-grid">
                 <mat-form-field class="form-span">
-                  <mat-label>{{environmentVariableLabel('network_address', 'Network Address')}}</mat-label>
+                  <mat-label>{{environmentVariableLabel('network_address', 'VPN 网段')}}</mat-label>
                   <input matInput id="networkAddress" [(ngModel)]="editItem.network_address"
-                    matTooltip="Network address of the VPN. Changing this will require reassignment of IP addresses of all peers and sending out new configuration to each peer."
+                    [matTooltip]="settingsText.tooltips.networkAddress"
                     matTooltipPosition="above" matTooltipShowDelay="500" [disabled]="!!environmentVariableFor('network_address')" autofocus />
                </mat-form-field>
                <app-validation-errors-display class="form-span" field="network_address" [validationResult]="validationResult">
                </app-validation-errors-display>
                <mat-form-field>
-                 <mat-label>Server IP Address</mat-label>
+                 <mat-label>服务器 IP 地址</mat-label>
                  <input matInput id="serverIPAddress" [(ngModel)]="editItem.ip_address"
-                   matTooltip="IP address of the VPN server." matTooltipPosition="above" matTooltipShowDelay="500" [readonly]="true"
+                   matTooltip="VPN 服务器在隧道中的 IP 地址。" matTooltipPosition="above" matTooltipShowDelay="500" [readonly]="true"
                    [disabled]="true" />
                </mat-form-field>
                <mat-form-field>
-                 <mat-label>{{environmentVariableLabel('port_internal', 'Port Internal')}}</mat-label>
+                 <mat-label>{{environmentVariableLabel('port_internal', '内部端口')}}</mat-label>
                   <input matInput id="portInternal" type="number" [min]="1024" [max]="65535" required
                     [(ngModel)]="editItem.port_internal"
-                    matTooltip="Port on the host where the VPN is running." matTooltipPosition="above" matTooltipShowDelay="500"
+                    matTooltip="WireGuard 服务监听的端口。" matTooltipPosition="above" matTooltipShowDelay="500"
                     [disabled]="!!environmentVariableFor('port_internal')" />
                </mat-form-field>
                <app-validation-errors-display class="form-span" field="ip_address" [validationResult]="validationResult">
@@ -38,16 +38,16 @@
                <app-validation-errors-display class="form-span" field="port_internal" [validationResult]="validationResult">
                </app-validation-errors-display>
                <mat-form-field>
-                 <mat-label>{{environmentVariableLabel('host_name_external', 'Host Name External')}}</mat-label>
+                 <mat-label>{{environmentVariableLabel('host_name_external', '外部主机地址')}}</mat-label>
                   <input matInput id="hostNameExternal" [(ngModel)]="editItem.host_name_external"
-                    matTooltip="Peers connect to this VPN from internet using this name." matTooltipPosition="above" matTooltipShowDelay="500"
+                    matTooltip="节点从公网连接 VPN 时使用的地址。" matTooltipPosition="above" matTooltipShowDelay="500"
                     [disabled]="!!environmentVariableFor('host_name_external')" />
                </mat-form-field>
                <mat-form-field>
-                 <mat-label>{{environmentVariableLabel('port_external', 'Port External')}}</mat-label>
+                 <mat-label>{{environmentVariableLabel('port_external', '外部端口')}}</mat-label>
                   <input matInput id="portExternal" type="number" [min]="1024" [max]="65535" required
                     [(ngModel)]="editItem.port_external"
-                    matTooltip="Port exposed on your router. This is forwarded to the host where WG is running."
+                    matTooltip="公网端口会转发到运行 WireGuard 的主机。"
                     matTooltipPosition="above" matTooltipShowDelay="500" [disabled]="!!environmentVariableFor('port_external')" />
                </mat-form-field>
                <app-validation-errors-display class="form-span" field="host_name_external" [validationResult]="validationResult">
@@ -55,17 +55,17 @@
                <app-validation-errors-display class="form-span" field="port_external" [validationResult]="validationResult">
                </app-validation-errors-display>
                <mat-form-field class="form-span">
-                  <mat-label>{{environmentVariableLabel('local_networks', 'Local Networks')}}</mat-label>
+                  <mat-label>{{environmentVariableLabel('local_networks', '本地网段')}}</mat-label>
                    <input matInput id="localNetworks" [(ngModel)]="editItem.local_networks"
-                     matTooltip="Since the address for internet target is 0.0.0.0/0, your local network(s) will also be considered as part of internet. Enter comma-separated list of those local networks you want to keep safe from clients (you can add separate targets for those networks to allow access)."
+                     [matTooltip]="settingsText.tooltips.localNetworks"
                      matTooltipPosition="above" matTooltipShowDelay="500" [disabled]="!!environmentVariableFor('local_networks')" />
                </mat-form-field>
                <app-validation-errors-display class="form-span" field="local_networks" [validationResult]="validationResult">
                </app-validation-errors-display>
                <mat-form-field>
-                 <mat-label>{{environmentVariableLabel('upstream_dns_ip_address', 'Upstream DNS Server')}}</mat-label>
+                 <mat-label>{{environmentVariableLabel('upstream_dns_ip_address', '上游 DNS 服务器')}}</mat-label>
                   <input matInput id="upstreamDnsServer" [(ngModel)]="editItem.upstream_dns_ip_address"
-                    matTooltip="Upstream DNS server for the peers." matTooltipPosition="above" matTooltipShowDelay="500"
+                    matTooltip="供节点使用的上游 DNS 服务器。" matTooltipPosition="above" matTooltipShowDelay="500"
                     [disabled]="!!environmentVariableFor('upstream_dns_ip_address')" />
                </mat-form-field>
                <app-validation-errors-display class="form-span" field="upstream_dns_ip_address"
@@ -75,32 +75,33 @@
                   <mat-checkbox id="allowCheckUpdates" [ngModel]="effectiveAllowCheckUpdates"
                      (ngModelChange)="editItem.allow_check_updates = $event"
                     [disabled]="!!environmentVariableFor('allow_check_updates')"
-                    matTooltip="Allow checking updates by contacting GitHub releases page. No data is sent to the server."
+                    matTooltip="通过 GitHub 发布页面检查更新，期间不会上传面板配置。"
                     matTooltipPosition="above" matTooltipShowDelay="500">
-                    {{environmentVariableLabel('allow_check_updates', 'Allow Check Updates')}}
+                    {{environmentVariableLabel('allow_check_updates', '允许检查更新')}}
                  </mat-checkbox>
                </div>
                 <div class="form-span editor-row">
                   <mat-checkbox id="strictAllowedIpsInPeerConfig"
                     [(ngModel)]="editItem.strict_allowed_ips_in_peer_config"
                     [disabled]="!!environmentVariableFor('strict_allowed_ips_in_peer_config')"
-                    matTooltip="Instead of 0.0.0.0/0 in AllowedIPs in peer-config, have a list of only IP's of allowed targets. Any changes to links between peer-groups and targets will require update of peer tunnel configuration for each affected peer."
+                    [matTooltip]="settingsText.tooltips.strictAllowedIps"
                     matTooltipPosition="above" matTooltipShowDelay="500">
-                   {{environmentVariableLabel('strict_allowed_ips_in_peer_config', 'Strict AllowedIPs in Peer Config')}}
+                   {{environmentVariableLabel('strict_allowed_ips_in_peer_config', '仅将获准目标写入节点 AllowedIPs')}}
                  </mat-checkbox>
                 </div>
                <div class="form-span editor-actions">
                  <button mat-flat-button color="primary" type="button" (click)="ok()" [disabled]="!hasChanges">
                    <mat-icon>check</mat-icon>
-                   Ok
+                   保存
                  </button>
                  <button mat-stroked-button type="button" (click)="cancel()">
                    <mat-icon>close</mat-icon>
-                   Cancel
+                   取消
                  </button>
-                 <button mat-flat-button color="warn" type="button" (click)="applyConfiguration()">
+                 <button mat-flat-button color="warn" type="button" [disabled]="configurationChanges.busy()"
+                   (click)="configurationChanges.apply()">
                    <mat-icon>refresh</mat-icon>
-                   Restart
+                   应用更改并重启
                  </button>
                </div>
                <div class="form-span editor-validation">
@@ -113,7 +114,7 @@
        <mat-tab>
          <ng-template mat-tab-label>
            <mat-icon>hub</mat-icon>
-           <span class="tab-label">MCP Server</span>
+           <span class="tab-label">MCP 服务</span>
          </ng-template>
          <mat-card>
            <mat-card-content>
@@ -121,30 +122,30 @@
                 <div class="form-span editor-row">
                   <mat-checkbox [(ngModel)]="mcpConfiguration.mcp_enabled" (change)="updateMCPConfiguration()"
                     [disabled]="mcpConfigurationLoading || !!mcpLoadError || mcpUpdating || mcpConfiguration.environment_override">
-                    {{environmentVariableLabel('mcp_server_enabled', 'Enable MCP Server', mcpConfiguration.environment_override)}}
+                    {{environmentVariableLabel('mcp_server_enabled', '启用 MCP 服务', mcpConfiguration.environment_override)}}
                   </mat-checkbox>
                 </div>
                 @if (mcpLoadError) {
                   <div class="form-span editor-message">{{mcpLoadError}}</div>
                 }
                 <mat-form-field class="form-span">
-                  <mat-label>MCP Token</mat-label>
-                   <input #mcpTokenInput matInput readonly [value]="mcpConfiguration.mcp_token ? (mcpTokenVisible ? revealedMCPToken : '*****') : 'Not generated'"
-                    [attr.aria-label]="mcpTokenVisible ? 'MCP token' : 'Masked MCP token'" />
+                  <mat-label>MCP 令牌</mat-label>
+                   <input #mcpTokenInput matInput readonly [value]="mcpConfiguration.mcp_token ? (mcpTokenVisible ? revealedMCPToken : '*****') : '尚未生成'"
+                    [attr.aria-label]="mcpTokenVisible ? 'MCP 令牌' : '已隐藏的 MCP 令牌'" />
                   <button mat-icon-button matSuffix type="button" (click)="toggleMCPTokenVisibility()"
                     [disabled]="!mcpConfiguration.mcp_token || mcpConfigurationLoading || !!mcpLoadError || mcpUpdating"
-                    [attr.aria-label]="mcpTokenVisible ? 'Hide MCP token' : 'Show MCP token'"
-                    [matTooltip]="mcpTokenVisible ? 'Hide MCP token' : 'Show MCP token'">
+                    [attr.aria-label]="mcpTokenVisible ? '隐藏 MCP 令牌' : '显示 MCP 令牌'"
+                    [matTooltip]="mcpTokenVisible ? '隐藏 MCP 令牌' : '显示 MCP 令牌'">
                     <mat-icon>{{mcpTokenVisible ? 'visibility_off' : 'visibility'}}</mat-icon>
                   </button>
                 </mat-form-field>
                 <div class="form-span editor-actions">
                   <button mat-flat-button color="warn" type="button" (click)="generateMCPToken()"
-                    [disabled]="mcpConfigurationLoading || !!mcpLoadError || mcpUpdating"><mat-icon>vpn_key</mat-icon> Generate New Token</button>
+                    [disabled]="mcpConfigurationLoading || !!mcpLoadError || mcpUpdating"><mat-icon>vpn_key</mat-icon> 生成新令牌</button>
                   <button mat-stroked-button type="button" (click)="copyMCPToken()"
-                    [disabled]="!mcpConfiguration.mcp_token || mcpConfigurationLoading || !!mcpLoadError || mcpUpdating"><mat-icon>content_copy</mat-icon> Copy to Clipboard</button>
+                    [disabled]="!mcpConfiguration.mcp_token || mcpConfigurationLoading || !!mcpLoadError || mcpUpdating"><mat-icon>content_copy</mat-icon> 复制到剪贴板</button>
                 </div>
-                <div class="form-span editor-message">Connect to <code>/mcp</code> with <code>Authorization: Token &lt;token&gt;</code>.</div>
+                <div class="form-span editor-message">连接 <code>/mcp</code> 时，请使用 <code>Authorization: Token &lt;token&gt;</code> 请求头。</div>
              </div>
            </mat-card-content>
          </mat-card>
@@ -152,53 +153,53 @@
        <mat-tab>
          <ng-template mat-tab-label>
            <mat-icon>mail</mat-icon>
-           <span class="tab-label">Email</span>
+           <span class="tab-label">邮件</span>
          </ng-template>
          <mat-card>
            <mat-card-content>
              <div class="editor-form form-grid">
                <mat-form-field>
-                  <mat-label>{{environmentVariableLabel('email_host', 'SMTP Host', !!emailEnvironmentVariableFor('email_host'))}}</mat-label>
+                  <mat-label>{{environmentVariableLabel('email_host', 'SMTP 主机', !!emailEnvironmentVariableFor('email_host'))}}</mat-label>
                  <input matInput id="emailHost" [(ngModel)]="emailConfiguration.email_host"
-                   matTooltip="SMTP server host name or IP address." matTooltipPosition="above" matTooltipShowDelay="500"
+                   matTooltip="SMTP 服务器的主机名或 IP 地址。" matTooltipPosition="above" matTooltipShowDelay="500"
                    [disabled]="!!emailEnvironmentVariableFor('email_host')" />
                  @if (emailFieldError('email_host')) {
                    <mat-error>{{emailFieldError('email_host')}}</mat-error>
                  }
                </mat-form-field>
                <mat-form-field>
-                 <mat-label>{{environmentVariableLabel('email_port', 'Port', !!emailEnvironmentVariableFor('email_port'))}}</mat-label>
+                 <mat-label>{{environmentVariableLabel('email_port', '端口', !!emailEnvironmentVariableFor('email_port'))}}</mat-label>
                  <input matInput id="emailPort" type="number" [min]="1" [max]="65535"
                    [(ngModel)]="emailConfiguration.email_port"
-                   matTooltip="SMTP server port (1-65535)." matTooltipPosition="above" matTooltipShowDelay="500"
+                   matTooltip="SMTP 服务器端口（1–65535）。" matTooltipPosition="above" matTooltipShowDelay="500"
                    [disabled]="!!emailEnvironmentVariableFor('email_port')" />
                  @if (emailFieldError('email_port')) {
                    <mat-error>{{emailFieldError('email_port')}}</mat-error>
                  }
                </mat-form-field>
                <mat-form-field>
-                 <mat-label>{{environmentVariableLabel('email_host_user', 'Username', !!emailEnvironmentVariableFor('email_host_user'))}}</mat-label>
+                 <mat-label>{{environmentVariableLabel('email_host_user', '用户名', !!emailEnvironmentVariableFor('email_host_user'))}}</mat-label>
                  <input matInput id="emailHostUser" [(ngModel)]="emailConfiguration.email_host_user"
-                   matTooltip="Optional SMTP username. Must be supplied together with the password." matTooltipPosition="above" matTooltipShowDelay="500"
+                   matTooltip="SMTP 用户名可选，须与密码一同填写。" matTooltipPosition="above" matTooltipShowDelay="500"
                    [disabled]="!!emailEnvironmentVariableFor('email_host_user')" />
                  @if (emailFieldError('email_host_user')) {
                    <mat-error>{{emailFieldError('email_host_user')}}</mat-error>
                  }
                </mat-form-field>
                <mat-form-field>
-                 <mat-label>{{environmentVariableLabel('email_host_password', 'Password', !!emailEnvironmentVariableFor('email_host_password'))}}</mat-label>
+                 <mat-label>{{environmentVariableLabel('email_host_password', '密码', !!emailEnvironmentVariableFor('email_host_password'))}}</mat-label>
                  <input matInput id="emailHostPassword" type="password" [(ngModel)]="emailConfiguration.email_host_password"
-                   [placeholder]="emailConfiguration.email_password_set ? 'Saved password (leave blank to keep)' : 'No password set'"
-                   matTooltip="Optional SMTP password. Stored on the server and never shown again." matTooltipPosition="above" matTooltipShowDelay="500"
+                   [placeholder]="emailConfiguration.email_password_set ? '已保存密码，留空可沿用' : '尚未设置密码'"
+                   matTooltip="SMTP 密码可选，保存后不再显示。" matTooltipPosition="above" matTooltipShowDelay="500"
                    [disabled]="!!emailEnvironmentVariableFor('email_host_password')" />
                  @if (emailFieldError('email_host_password')) {
                    <mat-error>{{emailFieldError('email_host_password')}}</mat-error>
                  }
                </mat-form-field>
                <mat-form-field class="form-span">
-                 <mat-label>{{environmentVariableLabel('email_default_from_email', 'From Email', !!emailEnvironmentVariableFor('email_default_from_email'))}}</mat-label>
+                 <mat-label>{{environmentVariableLabel('email_default_from_email', '发件邮箱', !!emailEnvironmentVariableFor('email_default_from_email'))}}</mat-label>
                  <input matInput id="emailDefaultFromEmail" [(ngModel)]="emailConfiguration.email_default_from_email"
-                   matTooltip="Email address used as the sender." matTooltipPosition="above" matTooltipShowDelay="500"
+                   matTooltip="用于发送邮件的邮箱地址。" matTooltipPosition="above" matTooltipShowDelay="500"
                    [disabled]="!!emailEnvironmentVariableFor('email_default_from_email')" />
                  @if (emailFieldError('email_default_from_email')) {
                    <mat-error>{{emailFieldError('email_default_from_email')}}</mat-error>
@@ -207,13 +208,13 @@
                 <div class="form-span editor-row">
                   <mat-radio-group class="email-security-radio-group" [(ngModel)]="emailSecurityMode"
                     [disabled]="!!emailEnvironmentVariableFor('email_use_tls') || !!emailEnvironmentVariableFor('email_use_ssl')">
-                    <span class="email-security-label">SMTP Security</span>
+                    <span class="email-security-label">SMTP 安全设置</span>
                     <mat-radio-button value="none"
-                      matTooltip="Connect without encryption." matTooltipPosition="above" matTooltipShowDelay="500">{{emailSecurityOptionLabel('none')}}</mat-radio-button>
+                      matTooltip="使用未加密的连接。" matTooltipPosition="above" matTooltipShowDelay="500">{{emailSecurityOptionLabel('none')}}</mat-radio-button>
                     <mat-radio-button value="tls"
-                      matTooltip="Explicit encryption using STARTTLS. Recommended port 587." matTooltipPosition="above" matTooltipShowDelay="500">{{emailSecurityOptionLabel('tls')}}</mat-radio-button>
+                      matTooltip="使用 STARTTLS 显式加密。推荐端口 587。" matTooltipPosition="above" matTooltipShowDelay="500">{{emailSecurityOptionLabel('tls')}}</mat-radio-button>
                     <mat-radio-button value="ssl"
-                      matTooltip="Implicit encryption from the first byte. Recommended port 465." matTooltipPosition="above" matTooltipShowDelay="500">{{emailSecurityOptionLabel('ssl')}}</mat-radio-button>
+                      matTooltip="从连接建立时即使用 TLS 加密。推荐端口 465。" matTooltipPosition="above" matTooltipShowDelay="500">{{emailSecurityOptionLabel('ssl')}}</mat-radio-button>
                   </mat-radio-group>
                   <div class="email-security-help">
                     <div class="email-security-help-text">{{emailSecurityHelpText}}</div>
@@ -235,30 +236,30 @@
                   <button mat-flat-button color="primary" type="button" (click)="saveEmailConfiguration()"
                     [disabled]="!emailHasChanges || emailUpdating || emailConfigurationLoading || !!emailLoadError">
                     <mat-icon>check</mat-icon>
-                    Save
+                    保存
                   </button>
                   <button mat-stroked-button type="button" (click)="cancelEmailConfiguration()"
                     [disabled]="emailUpdating || emailConfigurationLoading">
                     <mat-icon>close</mat-icon>
-                    Cancel
+                    取消
                   </button>
                   <button mat-stroked-button type="button" (click)="sendTestEmail()"
                     [disabled]="(emailEffectiveStatus?.status ?? emailStatus?.status) !== 'configured'"
-                    [matTooltip]="(emailEffectiveStatus?.status ?? emailStatus?.status) === 'configured' ? 'Send from the configured address to that same address.' : (emailEffectiveStatus?.message || emailStatus?.message || 'SMTP email is not configured.')">
+                    [matTooltip]="(emailEffectiveStatus?.status ?? emailStatus?.status) === 'configured' ? '从已配置的发件邮箱发一封测试邮件给自己。' : smtpMessage(emailEffectiveStatus?.message || emailStatus?.message || 'SMTP email is not configured.')">
                     <mat-icon>mail</mat-icon>
-                    Send Test Email
+                    发送测试邮件
                   </button>
                   <button mat-stroked-button type="button" (click)="testEmailConnectivity()"
                     [disabled]="emailUpdating || emailConfigurationLoading"
-                    matTooltip="Check whether the SMTP server is reachable at the configured host and port.">
+                    matTooltip="检查能否连接到已配置的 SMTP 主机和端口。">
                     <mat-icon>lan</mat-icon>
-                    Test Connectivity
+                    测试连通性
                   </button>
                   @if (emailEffectiveStatus) {
-                    <span class="email-status-inline" [matTooltip]="emailEffectiveStatus.message"
-                      [attr.aria-label]="emailEffectiveStatus.message">
+                    <span class="email-status-inline" [matTooltip]="smtpMessage(emailEffectiveStatus.message)"
+                      [attr.aria-label]="smtpMessage(emailEffectiveStatus.message)">
                       <mat-icon>{{emailEffectiveStatus.status === 'configured' ? 'check_circle' : (emailEffectiveStatus.status === 'invalid' ? 'warning' : 'info')}}</mat-icon>
-                      <span>{{emailEffectiveStatus.status === 'configured' ? 'Configured' : (emailEffectiveStatus.status === 'invalid' ? 'Misconfigured' : 'Not configured')}}</span>
+                      <span>{{emailEffectiveStatus.status === 'configured' ? '已配置' : (emailEffectiveStatus.status === 'invalid' ? '配置有误' : '未配置')}}</span>
                     </span>
                   }
                 </div>
@@ -269,24 +270,24 @@
         <mat-tab>
          <ng-template mat-tab-label>
            <mat-icon>lock</mat-icon>
-           <span class="tab-label">Change Password</span>
+           <span class="tab-label">修改密码</span>
          </ng-template>
          <div class="editor-form form-grid change-password">
           <mat-form-field class="form-span">
-            <mat-label>Current Password</mat-label>
+            <mat-label>当前密码</mat-label>
             <input matInput type="password" [(ngModel)]="changeUserPasswordInfo.current_password" />
           </mat-form-field>
           <mat-form-field class="form-span">
-            <mat-label>New Password</mat-label>
+            <mat-label>新密码</mat-label>
             <input matInput type="password" [(ngModel)]="changeUserPasswordInfo.new_password" />
           </mat-form-field>
           <mat-form-field class="form-span">
-            <mat-label>New Password (verify)</mat-label>
+            <mat-label>确认新密码</mat-label>
             <input matInput type="password" [(ngModel)]="changeUserPasswordInfo.new_password_copy" />
           </mat-form-field>
           <div class="form-span editor-actions">
             <button mat-flat-button color="primary" type="button" (click)="changePassword($event)">
-              Change Password
+              修改密码
             </button>
           </div>
           @if (userSessionInfo && userSessionInfo.message) {

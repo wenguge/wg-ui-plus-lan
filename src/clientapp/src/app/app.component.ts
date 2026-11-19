@@ -12,6 +12,8 @@ import { PeriodicRefreshUiService } from './services/periodic-refresh-ui.service
 import { NotificationService } from './services/notification.service';
 import { NotificationComponent } from './controls/notification/notification.component';
 import { ThemeService } from './services/theme.service';
+import { ConfigurationChangesService } from './services/configuration-changes.service';
+import { shellText } from './ui-text.zh-cn';
 
 @Component({
     standalone: true,
@@ -56,6 +58,7 @@ export class AppComponent implements OnInit, OnDestroy {
     private platformInformationService: PlatformInformationService,
     private periodicRefreshUiService: PeriodicRefreshUiService,
     private themeService: ThemeService,
+    private configurationChanges: ConfigurationChangesService,
     private router: Router) { }
 
   ngOnInit() {
@@ -142,12 +145,12 @@ export class AppComponent implements OnInit, OnDestroy {
   get statusLabel(): string {
     const status = this.serverStatus?.status;
     if (status === 'error') {
-      return 'Offline';
+      return '离线';
     }
     if (status === 'warning' || status === 'warn') {
-      return 'Warning';
+      return '警告';
     }
-    return 'Online';
+    return '在线';
   }
 
   get theme() {
@@ -196,7 +199,7 @@ export class AppComponent implements OnInit, OnDestroy {
     const collapsesOnTap = this.isSmallScreen
       ? this.mobileNavOpen          // drawer open → tapping closes it
       : !this.navCollapsed;         // rail expanded → tapping collapses it
-    return collapsesOnTap ? 'Collapse navigation' : 'Expand navigation';
+    return collapsesOnTap ? '收起导航' : '展开导航';
   }
 
   toggleTheme(): void {
@@ -209,7 +212,7 @@ export class AppComponent implements OnInit, OnDestroy {
       return 'error';
     }
     if (this.serverStatus?.need_regenerate_files && this.userSessionInfo.is_logged_in) {
-      return 'warn:regenerate';
+      return this.serverStatus.can_undo_configuration ? 'warn:regenerate:undo' : 'warn:regenerate';
     }
     return null;
   }
@@ -217,9 +220,9 @@ export class AppComponent implements OnInit, OnDestroy {
   /** Keeps the unified banner in sync with the server status (offline / regenerate). */
   private syncStatusBanner(): void {
     const key = this.computeStatusBannerKey();
-    // Refresh the retained status notification while an email failure is
+    // Refresh the retained status notification while operation feedback is
     // displayed so dismissal restores the latest status, not stale content.
-    if (key === this.lastStatusBannerKey && !this.notification.isEmailDeliveryFailureVisible()) {
+    if (key === this.lastStatusBannerKey && !this.notification.isOperationFeedbackVisible()) {
       return;
     }
     this.lastStatusBannerKey = key;
@@ -230,28 +233,26 @@ export class AppComponent implements OnInit, OnDestroy {
     if (key === 'error') {
       this.notification.showStatus({
         type: 'error',
-        message: this.serverStatus?.message || 'Connection to the server was lost.',
+        message: this.serverStatus?.message || shellText.serverConnectionLost,
         persistent: true,
       });
-    } else if (key === 'warn:regenerate') {
+    } else {
       this.notification.showStatus({
         type: 'warn',
-        message: 'This will regenerate Server Configuration files and restart WireGuard.',
-        action: { label: 'Apply Changes', callback: () => this.applyConfiguration() },
+        message: shellText.applyNotice,
+        action: {
+          label: shellText.applyChanges,
+          callback: () => this.configurationChanges.apply(),
+          disabled: this.configurationChanges.busy,
+        },
+        secondaryAction: this.serverStatus.can_undo_configuration ? {
+          label: shellText.undoChanges,
+          callback: () => this.configurationChanges.undo(),
+          disabled: this.configurationChanges.busy,
+        } : undefined,
         persistent: true,
       });
     }
   }
-
-  applyConfiguration(): void {
-    this.webapiService.generateConfigurationFiles().subscribe(data => {
-      this.notification.success('Configuration files generated on server.');
-      this.webapiService.wireguardRestart().subscribe(() => {
-        this.webapiService.checkServerStatus();
-        this.notification.success('Wireguard restarted on server.');
-      });
-    });
-  }
-
 
 }

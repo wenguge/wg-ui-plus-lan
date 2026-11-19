@@ -1,0 +1,33 @@
+services:
+  wireguard:
+    build:
+      context: .
+      target: live
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+    ports:
+      - "${WG_PORT_EXTERNAL:-51820}:51820/udp"
+      - "127.0.0.1:${WG_UI_PORT:-8000}:8000/tcp"
+    environment:
+      DJANGO_SECRET_KEY: "${DJANGO_SECRET_KEY:?Set DJANGO_SECRET_KEY in .env}"
+      WG_HOST_NAME_EXTERNAL: "${WG_HOST_NAME_EXTERNAL:?Set the public endpoint in .env}"
+      WG_PORT_EXTERNAL: "${WG_PORT_EXTERNAL:-51820}"
+      WG_PORT_INTERNAL: "51820"
+      WG_NETWORK_ADDRESS: "${WG_NETWORK_ADDRESS:-10.66.66.0/24}"
+      WG_LOCAL_NETWORKS: "${WG_LOCAL_NETWORKS:?Set the protected LAN subnet in .env}"
+      WG_UPSTREAM_DNS_SERVER: "${WG_UPSTREAM_DNS_SERVER:-1.1.1.1}"
+      WG_STRICT_ALLOWED_IPS_IN_PEER_CONFIG: "true"
+      WG_MCP_SERVER_ENABLED: "false"
+    volumes:
+      - data:/data
+      - config:/config
+    tmpfs:
+      - /tmp:rw,nosuid,nodev,noexec
+    sysctls:
+      net.ipv4.conf.all.src_valid_mark: "1"
+      net.ipv4.ip_forward: "1"
+
+volumes:
+  data:
+  config:

@@ -31,6 +31,8 @@ export interface Peer extends Entity {
     peer_groups: PeerGroup[];
     peer_groups_lookup: PeerGroup[];
     peer_group_ids: number[];
+    client_use_vpn_dns?: boolean | null;
+    client_include_server_route?: boolean;
     qr: string;
     target_names: string;
     configuration: string;
@@ -131,10 +133,13 @@ export interface ConnectedPeerInformation {
     datetime: string;
     message: string;
     items: ConnectedPeerInformationItem[];
+    total_rx?: number;
+    total_tx?: number;
 }
 
 export interface ConnectedPeerInformationItem {
     peer_name: string;
+    peer_id?: number | null;
     status: string;
     interface: string;
     public_key: string;
@@ -148,6 +153,8 @@ export interface ConnectedPeerInformationItem {
     latest_handshake: string | null;
     transfer_rx: number | null;
     transfer_tx: number | null;
+    cumulative_rx?: number | null;
+    cumulative_tx?: number | null;
     persistent_keepalive: number;
     is_connected?: boolean;
     is_inactive?: boolean;
@@ -183,6 +190,7 @@ export interface ServerStatus {
     platform_processor: string;
     platform_architecture: string;
     need_regenerate_files: boolean;
+    can_undo_configuration?: boolean;
     last_db_change_datetime: Date;
     wireguard_config_change_datetime: Date;
     application_details: ApplicationDetails;

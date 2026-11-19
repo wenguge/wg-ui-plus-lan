@@ -73,83 +73,61 @@ PersistentKeepalive = 25
         context = Context({"peer": peer})
         peer_config_server_side = self.render_template(template, context)
 
-        peer_group_everyone = [
-            x for x in peer_groups if x.name == PEER_GROUP_EVERYONE_NAME
-        ]
-
-        allowed_ips = [IP_ADDRESS_INTERNET]
+        allowed_ips = {IP_ADDRESS_INTERNET}
 
         if server_configuration.strict_allowed_ips_in_peer_config:
-            allowed_ips = []
-
-            allowed_ips_everyone = []
-            if peer_group_everyone:
-                allowed_ips_everyone = [
-                    x.ip_address for x in peer_group_everyone[0].targets.all()
-                ]
-
-            allowed_ips_by_peer_groups = [
-                p.ip_address.split(":")[0]
-                for pg in peer.peer_groups.all()
-                for p in pg.peers.all()
-                if p.ip_address and p.ip_address != peer.ip_address
+            groups = [group for group in peer.peer_groups.all() if not group.disabled]
+            allowed_ips = {
+                member.ip_address
+                for group in groups
+                for member in group.peers.all()
+                if not member.disabled and member.ip_address and member.ip_address != peer.ip_address
+            }
+            target_groups = groups + [
+                group for group in peer_groups
+                if group.name == PEER_GROUP_EVERYONE_NAME and not group.disabled
             ]
-
-            allowed_ips_by_targets = [
-                target.ip_address.split(":")[0]
-                for pg in peer.peer_groups.all()
-                for target in pg.targets.all()
-                if target.ip_address
-            ]
-
-            allowed_ips = (
-                allowed_ips_everyone
-                + allowed_ips_by_peer_groups
-                + allowed_ips_by_targets
+            allowed_ips.update(
+                target.ip_address.partition(":")[0]
+                for group in target_groups
+                for target in group.targets.all()
+                if not target.disabled and target.ip_address
             )
 
-            # add upstream DNS server to allowed IP's.
-            if server_configuration.upstream_dns_ip_address:
-                allowed_ips += [server_configuration.upstream_dns_ip_address]
+        full_tunnel = IP_ADDRESS_INTERNET in allowed_ips
+        use_vpn_dns = peer.client_use_vpn_dns
+        if use_vpn_dns is None:
+            use_vpn_dns = full_tunnel
+        dns_server = server_configuration.upstream_dns_ip_address if use_vpn_dns else None
 
-            # add VPN server's ip address also.
-            if server_configuration.network_address:
-                allowed_ips += [server_configuration.ip_address]
-
-        # if 0.0.0.0/0 is in the list, no need to have anything else.
-        if IP_ADDRESS_INTERNET in allowed_ips:
-            allowed_ips = [IP_ADDRESS_INTERNET]
-
-        allowed_ips = list(set(allowed_ips))
-
-        # if there is no allowedIPs, default to catch-all
-        if not allowed_ips:
-            allowed_ips = [IP_ADDRESS_INTERNET]
+        if full_tunnel:
+            allowed_ips = {IP_ADDRESS_INTERNET}
+        else:
+            if dns_server:
+                allowed_ips.add(dns_server)
+            if peer.client_include_server_route and server_configuration.ip_address:
+                allowed_ips.add(server_configuration.ip_address)
 
         logger.debug(
             f"serverConfiguration.strict_allowed_ips_in_peer_config: {server_configuration.strict_allowed_ips_in_peer_config} => allowed_ips: {allowed_ips}"
         )
 
-        allowed_ips = [is_network_address(x) for x in allowed_ips]
-        allowed_ips = [x[2] for x in allowed_ips]
-        allowed_ips.sort()
-        allowed_ips = [str(x) for x in allowed_ips]
-
-        allowed_ips = ",".join(allowed_ips)
+        networks = {is_network_address(address)[2] for address in allowed_ips}
+        allowed_ips = ",".join(str(network) for network in sorted(networks))
 
         template = """
 # Settings for this client.
 [Interface]
 Address = {{peer.ip_address}}
 ListenPort = {{peer_port}}
-PrivateKey = {{peer.private_key}}
-DNS = {{serverConfiguration.upstream_dns_ip_address}}
+PrivateKey = {{peer.private_key}}{% if dns_server %}
+DNS = {{dns_server}}{% endif %}
 
 # Settings for the peer on the server side.
 [Peer]
 PublicKey = {{serverConfiguration.public_key}}
-Endpoint = {{serverConfiguration.host_name_external}}:{{serverConfiguration.port_external}}
-AllowedIPs = {{allowed_ips}}
+Endpoint = {{serverConfiguration.host_name_external}}:{{serverConfiguration.port_external}}{% if allowed_ips %}
+AllowedIPs = {{allowed_ips}}{% endif %}
 """
         peer_port = peer.port if peer.port else server_configuration.peer_default_port
         context = Context(
@@ -157,6 +135,7 @@ AllowedIPs = {{allowed_ips}}
                 "serverConfiguration": server_configuration,
                 "peer": peer,
                 "peer_port": peer_port,
+                "dns_server": dns_server,
                 "allowed_ips": allowed_ips,
             }
         )
@@ -205,6 +184,7 @@ AllowedIPs = {{allowed_ips}}
         # generate post-up script
         post_up = [
             "#!/bin/bash",
+            "set -e",
             "WIREGUARD_INTERFACE=wg0",
             f"WIREGUARD_LAN={vpn_network_address}",
             "LAN_INTERFACE=$(ip route show default | awk '/default/ {print $5; exit}')",
@@ -581,6 +561,7 @@ AllowedIPs = {{allowed_ips}}
         for match_num, match in enumerate(matches, start=1):
             peer_item = {}
             peer_item["peer_name"] = f"unknown-{match_num}"
+            peer_item["peer_id"] = None
             peer_item["end_point"] = None
             peer_item["latest_handshake"] = None
             peer_item["transfer_rx"] = None
@@ -605,6 +586,7 @@ AllowedIPs = {{allowed_ips}}
                 last_handshake = None
                 is_disabled = peer.disabled
                 peer_item["peer_name"] = peer.name
+                peer_item["peer_id"] = peer.pk
                 if not is_disabled:
                     is_connected = (
                         True

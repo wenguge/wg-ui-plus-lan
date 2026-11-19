@@ -46,67 +46,67 @@ export interface NavDrawerMenuSection {
 })
 export class AppNavDrawerComponent implements OnInit {
   private menuItemMonitorPeers: NavDrawerMenuItem = {
-    label: 'Monitor Peers',
+    label: '节点监控',
     route: '/server-monitor-peers',
     icon: 'visibility',
-    tooltip: 'See the status of all the peers in one page.',
+    tooltip: '查看所有节点的状态。',
   };
   private menuItemMonitorIPTables: NavDrawerMenuItem = {
-    label: 'Monitor IP-Tables',
+    label: '防火墙监控',
     route: '/server-monitor-iptables',
     icon: 'visibility',
-    tooltip: 'See the chains defined in IPTables.',
+    tooltip: '查看 iptables 规则链。',
   };
   private menuItemVPNLayout: NavDrawerMenuItem = {
-    label: 'VPN Layout',
+    label: 'VPN 拓扑',
     route: '/server-vpn-layout',
     icon: 'grid_view',
-    tooltip: 'See how all peers/peer-groups/targets tie together.',
+    tooltip: '查看节点、分组和访问目标之间的关系。',
   };
   private menuItemServerConfiguration: NavDrawerMenuItem = {
-    label: 'Configuration',
+    label: '服务器配置',
     route: '/server-configuration',
     icon: 'build',
-    tooltip: 'Configure the VPN on the server side.',
+    tooltip: '管理服务器端 VPN 配置。',
   };
   private menuItemAbout: NavDrawerMenuItem = {
-    label: 'About',
+    label: '关于',
     route: '/about',
     icon: 'help',
-    tooltip: 'Some information about the application itself.',
+    tooltip: '查看应用信息。',
   };
   private menuItemLogIn: NavDrawerMenuItem = {
-    label: 'Log in',
+    label: '登录',
     route: '/login',
     icon: 'login',
-    tooltip: 'Log in to manage the data (peers/peer-groups/targets).',
+    tooltip: '登录后可管理节点、分组和访问目标。',
     replaceUrl: true,
   };
   private menuItemLogOut: NavDrawerMenuItem = {
-    label: 'Log out',
+    label: '退出登录',
     icon: 'logout',
-    tooltip: 'Log out (before you step away from your machine).',
+    tooltip: '结束当前登录会话。',
     command: () => {
       this.loginService.logout();
     },
   };
   private menuItemPeerGroups: NavDrawerMenuItem = {
-    label: 'Peer-Groups',
+    label: '节点分组',
     route: '/manage-peer-groups',
     icon: 'account_tree',
-    tooltip: 'Add/Edit/Remove Peer-Groups. Link/Unlink Peer-Groups with Targets.',
+    tooltip: '管理节点分组及关联的访问目标。',
   };
   private menuItemPeers: NavDrawerMenuItem = {
-    label: 'Peers',
+    label: '节点',
     route: '/manage-peers',
     icon: 'desktop_windows',
-    tooltip: 'Add/Edit/Remove Peers. Add/Remove Peers to Peer-Groups.',
+    tooltip: '管理节点和组成员。',
   };
   private menuItemTargets: NavDrawerMenuItem = {
-    label: 'Targets',
+    label: '访问目标',
     route: '/manage-targets',
     icon: 'track_changes',
-    tooltip: 'Add/Edit/Remove Targets. Link/Unlink Targets with Peer-Groups.',
+    tooltip: '管理访问目标及关联的节点分组。',
   };
 
   /** Sections rendered in the upper portion of the drawer. */
@@ -117,7 +117,7 @@ export class AppNavDrawerComponent implements OnInit {
 
   private itemsAuthorized: NavDrawerMenuSection[] = [
     {
-      label: 'Server',
+      label: '服务器',
       items: [
         this.menuItemMonitorPeers,
         this.menuItemMonitorIPTables,
@@ -126,7 +126,7 @@ export class AppNavDrawerComponent implements OnInit {
       ]
     },
     {
-      label: 'Manage Data',
+      label: '数据管理',
       items: [
         this.menuItemPeerGroups,
         this.menuItemPeers,
@@ -142,7 +142,7 @@ export class AppNavDrawerComponent implements OnInit {
 
   private itemsAnonymous: NavDrawerMenuSection[] = [
     {
-      label: 'Server',
+      label: '服务器',
       items: [
         this.menuItemMonitorPeers,
         this.menuItemMonitorIPTables,

@@ -26,28 +26,28 @@
         <button mat-icon-button type="button"
                 [disabled]="disabled"
                 (click)="moveSelected(source, selected)"
-                matTooltip="Move selected to target"
+                aria-label="添加所选项" matTooltip="添加所选项"
                 matTooltipPosition="above" matTooltipShowDelay="500">
             <mat-icon>chevron_right</mat-icon>
         </button>
         <button mat-icon-button type="button"
                 [disabled]="disabled"
                 (click)="moveAll(source, selected)"
-                matTooltip="Move all to target"
+                aria-label="添加全部项" matTooltip="添加全部项"
                 matTooltipPosition="above" matTooltipShowDelay="500">
             <mat-icon>last_page</mat-icon>
         </button>
         <button mat-icon-button type="button"
                 [disabled]="disabled"
                 (click)="moveAll(selected, source)"
-                matTooltip="Move all to source"
+                aria-label="移除全部项" matTooltip="移除全部项"
                 matTooltipPosition="above" matTooltipShowDelay="500">
             <mat-icon>first_page</mat-icon>
         </button>
         <button mat-icon-button type="button"
                 [disabled]="disabled"
                 (click)="moveSelected(selected, source)"
-                matTooltip="Move selected to source"
+                aria-label="移除所选项" matTooltip="移除所选项"
                 matTooltipPosition="above" matTooltipShowDelay="500">
             <mat-icon>chevron_left</mat-icon>
         </button>

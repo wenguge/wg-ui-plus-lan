@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, ReplaySubject, of } from 'rxjs';
+import { Observable, ReplaySubject, of, switchMap } from 'rxjs';
 import { map, tap } from 'rxjs/operators'
 import { ChangeUserPasswordInfo, ConnectedPeerInformation, EmailConfiguration, IptablesLog, LicenseInfo, MCPConfiguration, OrgChartNode, Peer, PeerGroup, ServerConfiguration, ServerStatus, Target, UserCredentials, UserSessionInfo, WireguardConfiguration } from '../webapi.entities';
 
@@ -19,8 +19,11 @@ export class WebapiService {
     private urlGetWireguardConfiguration = '/api/v1/data/control/wireguard_get_configuration';
     private urlControlWireguardRestart = '/api/v1/control/wireguard_restart';
     private urlControlGenerateConfigurationFiles = '/api/v1/control/wireguard_generate_configuration_files';
+    private urlApplyConfiguration = '/api/v1/control/wireguard_apply_configuration';
+    private urlUndoConfiguration = '/api/v1/control/wireguard_undo_configuration';
     private urlTargetHierarchy = '/api/v1/data/target_hierarchy/';
     private urlGetConnectedPeers = '/api/v1/control/wireguard_get_connected_peers';
+    private urlResetTransferTotals = '/api/v1/control/wireguard_reset_transfer_totals';
     private urlGetIptablesLog = '/api/v1/control/get_iptables_log';
     private urlGetServerStatus = '/api/v1/control/get_server_status';
     private urlIsUserLogIn = '/api/v1/auth/login';
@@ -90,6 +93,12 @@ export class WebapiService {
             this.checkServerStatus();
         }));
         return res;
+    }
+
+    setPeerDisabled(id: number, disabled: boolean): Observable<Peer> {
+        return this.http.patch<Peer>(this.urlPeer + id + '/', { disabled }).pipe(
+            tap(() => this.checkServerStatus())
+        );
     }
 
     deletePeer(item: Peer): Observable<Peer> {
@@ -178,15 +187,19 @@ export class WebapiService {
             }));
     }
 
-    generateConfigurationFiles(): Observable<any> {
-        return this.http.get<any>(this.urlControlGenerateConfigurationFiles)
-            .pipe(tap(() => {
-                this.checkServerStatus();
-            }));
+    applyConfiguration(): Observable<void> {
+        return this.http.get<ServerStatus>(this.urlGetServerStatus).pipe(switchMap(status => {
+            if (typeof status.can_undo_configuration === 'boolean') {
+                return this.http.post<void>(this.urlApplyConfiguration, {});
+            }
+            return this.http.get<void>(this.urlControlGenerateConfigurationFiles).pipe(
+                switchMap(() => this.http.get<void>(this.urlControlWireguardRestart))
+            );
+        }));
     }
 
-    wireguardRestart(): Observable<any> {
-        return this.http.get<any>(this.urlControlWireguardRestart);
+    undoConfiguration(): Observable<void> {
+        return this.http.post<void>(this.urlUndoConfiguration, {});
     }
 
     getTargetHierarchy(): Observable<OrgChartNode[]> {
@@ -243,6 +256,10 @@ export class WebapiService {
 
     getConnectedPeers(): Observable<ConnectedPeerInformation> {
         return this.http.get<ConnectedPeerInformation>(this.urlGetConnectedPeers);
+    }
+
+    resetTransferTotals(peerId: number | null): Observable<void> {
+        return this.http.post<void>(this.urlResetTransferTotals, { peer_id: peerId });
     }
 
     getIptablesLog(): Observable<IptablesLog> {

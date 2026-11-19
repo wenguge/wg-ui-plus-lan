@@ -3,6 +3,9 @@ import ipaddress
 
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.db.models.signals import post_delete
+from django.dispatch import receiver
+from django.utils import timezone
 
 from .util import (
     logger,
@@ -108,6 +111,8 @@ class Peer(models.Model):
     description = models.CharField(max_length=255, null=True)
     email_address = models.CharField(max_length=255, null=True)
     disabled = models.BooleanField(null=True, default=False)
+    client_use_vpn_dns = models.BooleanField(null=True, default=None)
+    client_include_server_route = models.BooleanField(null=True, default=False)
     ip_address = models.CharField(max_length=255, null=True, blank=True)
     port = models.IntegerField(null=True, blank=True)
     public_key = models.CharField(max_length=255, null=True, blank=True)
@@ -143,6 +148,17 @@ class Peer(models.Model):
             if (not self.ip_address) or (self.ip_address != ip_address_temp):
                 self.ip_address = ip_address_temp
         super().save(force_insert=force_insert, force_update=force_update)
+
+
+class TransferBaseline(models.Model):
+    scope = models.CharField(max_length=32, primary_key=True)
+    interface_generation = models.CharField(max_length=128)
+    counters = models.JSONField(default=dict)
+
+
+class WireGuardRevision(models.Model):
+    applied = models.JSONField(null=True, default=None)
+    staged = models.JSONField(null=True, default=None)
 
 
 class Target(models.Model):
@@ -280,3 +296,8 @@ class ServerConfiguration(models.Model):
             for peer in peers:
                 peer.ip_address = None  # this will force updating of IP address again
                 peer.save()
+
+
+@receiver(post_delete, sender=Peer)
+def mark_peer_deletion(using, **kwargs):
+    ServerConfiguration.objects.using(using).update(last_changed_datetime=timezone.now())

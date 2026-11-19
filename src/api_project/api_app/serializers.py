@@ -65,14 +65,18 @@ class PeerWithQrSerializer(serializers.ModelSerializer):
         depth = 1
 
     def get_configuration(self, instance):
+        cached_instance, cached_configuration = getattr(self, "_client_configuration", (None, None))
+        if cached_instance is instance:
+            return cached_configuration
+
         wg = WireGuardHelper()
         server_configuration = ServerConfiguration.objects.all()[0]
-        peer = instance
         peer_groups = PeerGroup.objects.all()
-        s, c = wg.get_wireguard_configurations_for_peer(server_configuration, peer_groups, peer)
-        if c:
-            c = c.strip()
-        return c
+        _, configuration = wg.get_wireguard_configurations_for_peer(server_configuration, peer_groups, instance)
+        if configuration:
+            configuration = configuration.strip()
+        self._client_configuration = (instance, configuration)
+        return configuration
 
     def get_qr(self, instance):
         c = self.get_configuration(instance=instance)

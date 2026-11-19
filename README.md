@@ -1,5 +1,7 @@
 # WireGuard UI Plus
 
+[中文增强版与 Docker 部署说明](docs/compose.zh-CN.md)
+
 WireGuard UI Plus is a Dockerized web UI for running and managing a WireGuard
 VPN. The Angular single-page application and Django REST API run together in one
 container, which also generates WireGuard configuration and related iptables

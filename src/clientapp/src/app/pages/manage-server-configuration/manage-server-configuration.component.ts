@@ -12,6 +12,9 @@ import { LoginService } from '../../services/login.service';
 import { WebapiService } from '../../services/webapi.service';
 import { NotificationService } from '../../services/notification.service';
 import { ConfirmationDialogService } from '../../services/confirmation-dialog.service';
+import { ConfigurationChangesService } from '../../services/configuration-changes.service';
+import { authenticationMessage, authenticationText } from '../login/authentication-text.zh-cn';
+import { settingsText, smtpMessage } from './settings-text.zh-cn';
 
 @Component({
   standalone: true,
@@ -22,6 +25,8 @@ import { ConfirmationDialogService } from '../../services/confirmation-dialog.se
   styleUrl: './manage-server-configuration.component.scss'
 })
 export class ManageServerConfigurationComponent implements OnInit, OnDestroy {
+  readonly settingsText = settingsText;
+  readonly smtpMessage = smtpMessage;
 
   editItem: ServerConfiguration = {} as ServerConfiguration;
   validationResult!: ServerValidationError;
@@ -87,7 +92,8 @@ export class ManageServerConfigurationComponent implements OnInit, OnDestroy {
 
   constructor(private notification: NotificationService,
     private webapiService: WebapiService,
-    private router: Router, private loginService: LoginService, private confirmation: ConfirmationDialogService) { }
+    private router: Router, private loginService: LoginService, private confirmation: ConfirmationDialogService,
+    readonly configurationChanges: ConfigurationChangesService) { }
 
   ngOnInit(): void {
     this.loginServiceSubscription = this.loginService.getUserSessionInfo().subscribe(data => {
@@ -122,7 +128,7 @@ export class ManageServerConfigurationComponent implements OnInit, OnDestroy {
         }
         // MCP may not be available while an older database is being migrated or
         // when the session expired. Keep the rest of this page usable.
-        this.mcpLoadError = 'MCP configuration could not be loaded. Refresh after signing in again.';
+        this.mcpLoadError = '无法加载 MCP 配置，请重新登录后刷新页面。';
         this.mcpConfigurationLoading = false;
         this.resetRevealedMCPToken();
         this.mcpConfiguration = {
@@ -229,14 +235,14 @@ export class ManageServerConfigurationComponent implements OnInit, OnDestroy {
       return label;
     }
     const isEnvironmentOverride = environmentOverride ?? !!this.environmentVariableFor(field);
-    return `${label} (${isEnvironmentOverride ? `${environmentVariable} is set` : `Managed by ${environmentVariable}`})`;
+    return `${label}（${isEnvironmentOverride ? `已设置 ${environmentVariable}` : `环境变量 ${environmentVariable}`}）`;
   }
 
   ok() {
     this.saveConfigurationSubscription = this.webapiService.saveServerConfiguration(this.editItem)
       .subscribe({
         next: data => {
-          this.notification.success('Server configuration saved.');
+          this.notification.success('服务器配置已保存。');
           this.validationResult = { type: '', errors: [] } as ServerValidationError;
         },
         error: error => {
@@ -254,7 +260,7 @@ export class ManageServerConfigurationComponent implements OnInit, OnDestroy {
 
   cancel() {
     this.refreshData();
-    this.notification.warn('Server configuration reloaded from database.');
+    this.notification.warn('已重新加载服务器配置。');
   }
 
   get emailStatus() {
@@ -263,33 +269,15 @@ export class ManageServerConfigurationComponent implements OnInit, OnDestroy {
 
   sendTestEmail(): void {
     this.testEmailSubscription = this.webapiService.sendTestEmail().subscribe({
-      next: () => this.notification.success('Test e-mail sent successfully.'),
-      error: error => this.notification.showEmailDeliveryFailure(this.safeEmailMessage(error?.error?.message)),
+      next: () => this.notification.success('测试邮件已发送。'),
+      error: error => this.notification.showEmailDeliveryFailure(smtpMessage(error?.error?.message)),
     });
-  }
-
-  private safeEmailMessage(message: unknown): string {
-    const safeMessages = new Set([
-      'Email authentication failed. Check the SMTP username/app password, then check the server logs for more details.',
-      'The email server could not be reached. Check the SMTP host/port and network, then check the server logs for more details.',
-      'Email security negotiation failed. Check the SMTP TLS/SSL settings and certificate, then check the server logs for more details.',
-      'Email delivery failed. Check the SMTP settings, then check the server logs for more details.',
-      'The test email could not be delivered. Check the server logs for more details.',
-      'SMTP email is not configured. Set EMAIL_HOST, EMAIL_PORT, and EMAIL_DEFAULT_FROM_EMAIL.',
-      'SMTP email is not configured. Set EMAIL_HOST and EMAIL_PORT.',
-      'The SMTP host name could not be resolved. Check EMAIL_HOST.',
-      'The SMTP server did not respond. Check the host and port, and that the port is reachable from the container (for Docker, check the port mapping).',
-      'The connection to the SMTP server was refused. Check the host, port, and firewall or Docker port mapping.',
-      'The SMTP server could not be checked. Check the server logs for more details.',
-    ]);
-    return typeof message === 'string' && safeMessages.has(message)
-      ? message : 'The email server operation failed. Check the server logs for more details.';
   }
 
   testEmailConnectivity(): void {
     this.emailConnectivitySubscription = this.webapiService.testEmailConnectivity().subscribe({
-      next: result => this.notification.success(result?.message ?? 'SMTP server is reachable.'),
-      error: error => this.notification.showEmailDeliveryFailure(this.safeEmailMessage(error?.error?.message)),
+      next: result => this.notification.success(smtpMessage(result?.message ?? 'SMTP server is reachable.')),
+      error: error => this.notification.showEmailDeliveryFailure(smtpMessage(error?.error?.message)),
     });
   }
 
@@ -342,39 +330,28 @@ export class ManageServerConfigurationComponent implements OnInit, OnDestroy {
     const tlsVariable = this.environmentVariableNames['email_use_tls'];
     const sslVariable = this.environmentVariableNames['email_use_ssl'];
     if (mode === 'tls') {
-      return `TLS (STARTTLS) (${tls ? `${tlsVariable} is set` : `Managed by ${tlsVariable}`})`;
+      return `TLS (STARTTLS)（${tls ? `已设置 ${tlsVariable}` : `环境变量 ${tlsVariable}`}）`;
     }
     if (mode === 'ssl') {
-      return `SSL (${ssl ? `${sslVariable} is set` : `Managed by ${sslVariable}`})`;
+      return `SSL（${ssl ? `已设置 ${sslVariable}` : `环境变量 ${sslVariable}`}）`;
     }
     // None is only meaningful (and selectable) while neither variable is set.
     return tls || ssl
-      ? 'None'
-      : `None (Managed by ${tlsVariable} and ${sslVariable})`;
+      ? '不加密'
+      : `不加密（环境变量 ${tlsVariable}、${sslVariable}）`;
   }
 
   /** Static help text explaining the SMTP security environment variables. */
   get emailSecurityHelpText(): string {
-    return 'SMTP security is controlled by the EMAIL_USE_TLS and EMAIL_USE_SSL environment variables. ' +
-      'A variable is considered set only when its value is true; unset or false means it does not apply. ' +
-      'Only one can be true at a time: None means both are false or unset, TLS (STARTTLS) means EMAIL_USE_TLS=true, ' +
-      'SSL means EMAIL_USE_SSL=true.';
+    return settingsText.smtpSecurityHelp;
   }
 
   /** State-specific guidance shown when a security variable is set to true. */
   get emailSecurityEnvironmentMessage(): string {
     const tls = this.emailEnvironmentVariableFor('email_use_tls');
     const ssl = this.emailEnvironmentVariableFor('email_use_ssl');
-    if (tls && ssl) {
-      return `${tls} and ${ssl} are set to true, so the security mode is managed by the environment and cannot be changed here. Set both to false or unset them to manage the security mode from this page.`;
-    }
-    if (tls) {
-      return `${tls} is set to true, so the security mode is managed by the environment and cannot be changed here. Set it to false or unset it to manage the security mode from this page.`;
-    }
-    if (ssl) {
-      return `${ssl} is set to true, so the security mode is managed by the environment and cannot be changed here. Set it to false or unset it to manage the security mode from this page.`;
-    }
-    return '';
+    const variables = [tls, ssl].filter(Boolean);
+    return variables.length ? settingsText.smtpEnvironmentLocked(variables.join('、')) : '';
   }
 
   /** Effective status from the email configuration payload (fresh, per-field merged). */
@@ -385,7 +362,7 @@ export class ManageServerConfigurationComponent implements OnInit, OnDestroy {
   /** First validation error for a field ('' when the field is valid). */
   emailFieldError(field: string): string {
     const messages = this.emailValidationErrors[field];
-    return messages && messages.length > 0 ? messages[0] : '';
+    return messages && messages.length > 0 ? smtpMessage(messages[0]) : '';
   }
 
   private emptyEmailConfiguration(): EmailConfiguration {
@@ -427,7 +404,7 @@ export class ManageServerConfigurationComponent implements OnInit, OnDestroy {
         if (this.destroyed) {
           return;
         }
-        this.emailLoadError = 'Email settings could not be loaded. Refresh after signing in again.';
+        this.emailLoadError = '无法加载邮件设置，请重新登录后刷新页面。';
         this.emailConfigurationLoading = false;
         this.emailConfiguration = this.emptyEmailConfiguration();
       }
@@ -486,7 +463,7 @@ export class ManageServerConfigurationComponent implements OnInit, OnDestroy {
         }
         this.applyEmailConfiguration(data);
         this.emailUpdating = false;
-        this.notification.success('Email settings saved.');
+        this.notification.success('邮件设置已保存。');
         this.webapiService.checkServerStatus();
       },
       error: error => {
@@ -500,7 +477,7 @@ export class ManageServerConfigurationComponent implements OnInit, OnDestroy {
           this.emailValidationErrors = response.error as { [field: string]: string[] };
         } else {
           this.emailValidationErrors = {};
-          this.notification.error('Email settings could not be saved.');
+          this.notification.error('无法保存邮件设置。');
         }
       }
     });
@@ -508,28 +485,18 @@ export class ManageServerConfigurationComponent implements OnInit, OnDestroy {
 
   cancelEmailConfiguration(): void {
     this.loadEmailConfiguration();
-    this.notification.warn('Email settings reloaded from database.');
+    this.notification.warn('已重新加载邮件设置。');
   }
 
   wireguardConfiguration: WireguardConfiguration = {} as WireguardConfiguration;
 
-  applyConfiguration(): void {
-    this.webapiService.generateConfigurationFiles().subscribe(data => {
-      this.notification.success('Configuration files generated on server.');
-      this.webapiService.wireguardRestart().subscribe(() => {
-        this.webapiService.checkServerStatus();
-        this.notification.success('Wireguard restarted on server.');
-      });
-    });
-  }
-
   changePassword(event: Event): void {
     if (this.changeUserPasswordInfo.new_password !== this.changeUserPasswordInfo.new_password_copy) {
-      this.userSessionInfo.message = "New Passwords don't match.";
+      this.userSessionInfo.message = authenticationText.passwordsDoNotMatch;
     }
     else {
       this.changePasswordSubscription = this.webapiService.changeUserPassword(this.changeUserPasswordInfo).subscribe(data => {
-        this.userSessionInfo.message = data.message;
+        this.userSessionInfo.message = authenticationMessage(data.message);
       });
     }
   }
@@ -549,9 +516,9 @@ export class ManageServerConfigurationComponent implements OnInit, OnDestroy {
         this.resetRevealedMCPToken();
         this.mcpUpdating = false;
         if (data.environment_override && data.effective_enabled !== data.mcp_enabled) {
-           this.notification.warn('MCP database setting saved, but WG_MCP_SERVER_ENABLED controls the effective state.');
+           this.notification.warn('MCP 设置已保存，实际状态由 WG_MCP_SERVER_ENABLED 控制。');
         } else {
-          this.notification.success('MCP configuration saved.');
+          this.notification.success('MCP 配置已保存。');
         }
       },
       error: () => {
@@ -560,7 +527,7 @@ export class ManageServerConfigurationComponent implements OnInit, OnDestroy {
         }
         this.mcpConfiguration = { ...this.mcpConfiguration, mcp_enabled: this.savedMCPEnabled };
         this.mcpUpdating = false;
-        this.notification.error('MCP configuration could not be saved. The previous setting was restored.');
+        this.notification.error('无法保存 MCP 配置，已恢复原设置。');
       }
     });
   }
@@ -570,7 +537,7 @@ export class ManageServerConfigurationComponent implements OnInit, OnDestroy {
       return;
     }
     this.mcpUpdating = true;
-    this.mcpConfirmationSubscription = this.confirmation.confirm('Generate New MCP Token', 'Existing MCP clients will stop working until their token is updated. Continue?').subscribe(confirmed => {
+    this.mcpConfirmationSubscription = this.confirmation.confirm('生成新 MCP 令牌', settingsText.rotateMcpToken).subscribe(confirmed => {
       if (this.destroyed) {
         return;
       }
@@ -588,7 +555,7 @@ export class ManageServerConfigurationComponent implements OnInit, OnDestroy {
           // endpoint, so the display never becomes a stale raw token.
           this.mcpConfiguration = { ...this.mcpConfiguration, ...data };
           this.resetRevealedMCPToken();
-          this.notification.success('New MCP token generated.');
+          this.notification.success('已生成新的 MCP 令牌。');
           this.mcpUpdating = false;
         },
         error: () => {
@@ -596,7 +563,7 @@ export class ManageServerConfigurationComponent implements OnInit, OnDestroy {
             return;
           }
           this.mcpUpdating = false;
-          this.notification.error('MCP token could not be generated.');
+          this.notification.error('无法生成 MCP 令牌。');
         }
       });
     });
@@ -620,7 +587,7 @@ export class ManageServerConfigurationComponent implements OnInit, OnDestroy {
         const token = this.getRawMCPToken(data);
         if (!token) {
           this.mcpUpdating = false;
-          this.notification.error('MCP token could not be shown.');
+          this.notification.error('无法显示 MCP 令牌。');
           return;
         }
         this.revealedMCPToken = token;
@@ -633,7 +600,7 @@ export class ManageServerConfigurationComponent implements OnInit, OnDestroy {
           return;
         }
         this.mcpUpdating = false;
-        this.notification.error('MCP token could not be shown.');
+        this.notification.error('无法显示 MCP 令牌。');
       }
     });
   }
@@ -652,7 +619,7 @@ export class ManageServerConfigurationComponent implements OnInit, OnDestroy {
         if (!token) {
           if (!this.destroyed) {
             this.mcpUpdating = false;
-            this.notification.error('MCP token could not be copied.');
+            this.notification.error('无法复制 MCP 令牌。');
           }
           return;
         }
@@ -662,7 +629,7 @@ export class ManageServerConfigurationComponent implements OnInit, OnDestroy {
               return;
             }
             if (copied) {
-              this.notification.success('MCP token copied to clipboard.');
+              this.notification.success('MCP 令牌已复制到剪贴板。');
             } else {
               this.revealMCPTokenForManualCopy(token);
             }
@@ -678,7 +645,7 @@ export class ManageServerConfigurationComponent implements OnInit, OnDestroy {
           return;
         }
         this.mcpUpdating = false;
-        this.notification.error('MCP token could not be copied.');
+        this.notification.error('无法复制 MCP 令牌。');
       }
     });
   }
@@ -731,7 +698,7 @@ export class ManageServerConfigurationComponent implements OnInit, OnDestroy {
     this.revealedMCPToken = token;
     this.mcpTokenVisible = true;
     this.scheduleMCPTokenHide();
-    this.notification.warn('Automatic copy was blocked by browser policy. The token is selected below; press Ctrl+C (or Cmd+C) to copy it.');
+    this.notification.warn(settingsText.manualMcpCopy);
     this.clearMCPTokenFocusTimer();
     this.mcpTokenFocusTimer = setTimeout(() => {
       this.mcpTokenFocusTimer = null;

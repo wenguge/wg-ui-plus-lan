@@ -7,6 +7,7 @@ import { ValidationErrorsDisplayComponent } from '../../controls/validation-erro
 import { ConfirmationDialogService } from '../../services/confirmation-dialog.service';
 import { PeerGroup, ServerValidationError, Target } from '../../webapi.entities';
 import { WebapiService } from '../../services/webapi.service';
+import { managementText } from '../management-text.zh-cn';
 
 @Component({
     standalone: true,
@@ -111,7 +112,7 @@ export class ManagePeerGroupsEditorComponent {
       return;
     }
 
-    this.confirmationDialogService.confirm('Confirm', 'Are you sure that you want to delete ' + this.editItem.name + '?')
+    this.confirmationDialogService.confirm(managementText.confirmTitle, managementText.confirmDelete(this.editItem.name))
       .subscribe(dialogResult => {
         if (dialogResult) {
           this.webapiService.deletePeerGroup(this.peerGroup)

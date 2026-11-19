@@ -1,6 +1,7 @@
 """Shared orchestration for the HTTP views and MCP tools."""
 
 from .models import Peer, PeerGroup, ServerConfiguration
+from .configuration_revision import apply_configuration
 from .wireguard_helper import WireGuardHelper
 
 
@@ -16,8 +17,7 @@ def get_wireguard_configuration(server_configuration=None):
 
 def restart_wireguard(server_configuration=None):
     """Restart WireGuard using the configured server configuration."""
-    server_configuration = server_configuration or ServerConfiguration.objects.all()[0]
-    return WireGuardHelper().restart(server_configuration=server_configuration)
+    return apply_configuration(existing_files=True)
 
 
 def get_connected_peers(server_configuration=None, peers=None):
