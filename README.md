@@ -4,6 +4,10 @@
 
 本项目是基于 Vijay Gill 的 [wg-ui-plus v2.0.11](https://github.com/vijaygill/wg-ui-plus/tree/v2.0.11) 进行的非官方二次开发。项目沿用上游的节点、分组和访问目标模型，在此基础上完善了中文管理界面、内网分流和日常运维操作。
 
+## 节点监控界面
+
+![wg-ui-plus-lan 节点监控界面，展示连接状态、实时速率和累计流量](images/wg-ui-plus-lan-peer-monitor.png)
+
 ## 这个版本增加了什么
 
 - **中文节点面板**。在一页查看隧道地址、最近握手、实时上下行和累计流量。顶部总量和单个节点可分别重置。
